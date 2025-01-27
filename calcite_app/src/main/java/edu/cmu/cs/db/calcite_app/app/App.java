@@ -20,5 +20,17 @@ public class App
         // That package provides simple defaults that make it easier to configure Calcite.
         // But there's a lot of magic happening there; since this is an educational project,
         // we guide you towards the explicit method in the writeup.
+
+        // Step 1: Use SqlParser to convert SQL string to SQLNode
+
+        // Step 2: Use SQL validator to validate tree
+
+        // Step 3: Use sql2rel to convert to RelNode
+
+        // Step 4: Implement rule based optimizations
+
+        // Step 5: Improve with statistics
+
+        // Step 6: Use RelToSqlConverter to convert sql for running in DuckDB
     }
 }
