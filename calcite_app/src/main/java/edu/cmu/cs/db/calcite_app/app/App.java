@@ -5,16 +5,27 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Properties;
+import javax.sql.DataSource;
 import java.nio.file.Files;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.linq4j.tree.DefaultExpression;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.adapter.jdbc.JdbcConvention;
+import org.apache.calcite.jdbc.CalciteSchema;
+import java.sql.Connection;
+import java.sql.DriverManager;
 
-public class App
-{
+public class App {
     private static void SerializePlan(RelNode relNode, File outputPath) throws IOException {
-        Files.writeString(outputPath.toPath(), RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+        Files.writeString(outputPath.toPath(),
+                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
     }
 
     private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
@@ -40,8 +51,7 @@ public class App
         Files.writeString(outputPath.toPath(), resultSetString.toString());
     }
 
-    public static void main(String[] args) throws Exception
-    {
+    public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println("Usage: java -jar App.jar <arg1> <arg2>");
             return;
@@ -53,22 +63,42 @@ public class App
         System.out.println("\tArg1: " + arg1);
         String arg2 = args[1];
         System.out.println("\tArg2: " + arg2);
-        
-        // Note: in practice, you would probably use org.apache.calcite.tools.Frameworks.
-        // That package provides simple defaults that make it easier to configure Calcite.
-        // But there's a lot of magic happening there; since this is an educational project,
+
+        // Note: in practice, you would probably use
+        // org.apache.calcite.tools.Frameworks.
+        // That package provides simple defaults that make it easier to configure
+        // Calcite.
+        // But there's a lot of magic happening there; since this is an educational
+        // project,
         // we guide you towards the explicit method in the writeup.
 
-        // Step 1: Use SqlParser to convert SQL string to SQLNode
+        // Connect to DuckDB
+        String url = "jdbc:duckdb:../data.db";
 
-        // Step 2: Use SQL validator to validate tree
+        String schemaName = "duckdb";
 
-        // Step 3: Use sql2rel to convert to RelNode
+        CalciteSchema rootSchema = CalciteSchema.createRootSchema(false);
 
-        // Step 4: Implement rule based optimizations
+        String driverClassName = "org.duckdb.DuckDBDriver";
+        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
 
-        // Step 5: Improve with statistics
+        Connection connection = dataSource.getConnection();
 
-        // Step 6: Use RelToSqlConverter to convert sql for running in DuckDB
+        System.out.println(connection.isClosed());
+
+        JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema.plus(), schemaName, dataSource, null, null);
+
+        System.out.println("Loaded tables: " + jdbcSchema.getTableNames());
+
+        rootSchema.add(schemaName, jdbcSchema);
+
+        Optimizer optimizer = new Optimizer(rootSchema);
+        // Iterate over target queries
+        File queryDir = new File(args[0]);
+        for (File file : queryDir.listFiles()) {
+            System.out.println("Optimizing query: " + file.getName());
+            String optimizedQuery = optimizer.optimize(file.getPath(), args[1]);
+            System.out.println(optimizedQuery);
+        }
     }
 }
