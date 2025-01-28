@@ -4,10 +4,14 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
@@ -30,29 +34,34 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.plan.hep.HepProgram;
 
 public class Optimizer {
 
     private CalciteSchema rootSchema;
     private Context context;
+    private RelOptPlanner planner;
 
     public Optimizer(CalciteSchema rootSchema) {
         this.rootSchema = rootSchema;
         this.context = new Context(rootSchema);
+        this.buildHeuristicOptimizer();
     }
 
     public String optimize(String filepath, String out_path) throws Exception {
+
+        String file_name = filepath.substring(filepath.lastIndexOf("/") + 1);
+
         String sql = Files.readString(new File(filepath).toPath());
 
         System.out.println(filepath);
 
-        Files.writeString(new File(out_path).toPath(), sql);
+        Files.writeString(new File(out_path + "/" + file_name).toPath(), sql);
 
         // Step 1: Use SqlParser to convert SQL string to SQLNode
-        SqlParser.Config config = SqlParser.config()
-                .withCaseSensitive(false);
-
-        SqlParser parser = SqlParser.create(sql, config);
+        SqlParser parser = SqlParser.create(sql, SqlParser.config()
+                .withCaseSensitive(false));
         SqlNode sqlNode;
 
         try {
@@ -64,7 +73,7 @@ public class Optimizer {
         // Step 2: Use SQL validator to validate tree
         SqlNode validatedNode = this.context.validator.validate(sqlNode);
 
-        System.out.println(validatedNode);
+        // System.out.println(validatedNode);
 
         // Step 3: convert to relnode
 
@@ -72,27 +81,68 @@ public class Optimizer {
         RelRoot relRoot = this.context.sql2relConverter.convertQuery(validatedNode, false, true);
         RelNode relNode = relRoot.rel;
 
+        Files.writeString(
+                new File(out_path + '/' + file_name.substring(0, out_path.length() - 4) + ".txt").toPath(),
+                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+
         // For debugging, print the relational algebra tree
         System.out.println("Relational algebra plan:");
         System.out.println(RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
 
-        // Write the optimized plan to a file
-        Files.writeString(new File(out_path.substring(0, out_path.length() - 4) + "_optimized.txt").toPath(),
-                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
         // Step 4: Implement rule based optimizations
+
+        System.out.println(relNode.getTraitSet());
+
+        this.planner.setRoot(relNode);
+
+        RelNode relNodeWithTraits = planner.changeTraits(
+                relNode,
+                this.context.cluster.traitSetOf(EnumerableConvention.INSTANCE));
+
+        this.planner.setRoot(relNodeWithTraits);
+
+        this.planner.findBestExp();
+        // this.planner.changeTraits(relNode, relNode.getTraitSet());
 
         // Step 5: Improve with statistics
 
         // Step 6: Use RelToSqlConverter to convert sql for running in DuckDB
 
-        SqlNode optimizedSqlNode = this.context.rel2sqlConverter.visitRoot(relNode).asStatement();
+        // Write the optimized plan to a file
+        Files.writeString(
+                new File(out_path + '/' + file_name.substring(0, out_path.length() - 4) + "_optimized.txt").toPath(),
+                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+
+        SqlNode optimizedSqlNode = this.context.rel2sqlConverter.visitRoot(this.planner.getRoot()).asStatement();
 
         String final_sql = optimizedSqlNode.toSqlString(PostgresqlSqlDialect.DEFAULT).getSql();
 
-        Files.writeString(new File(out_path.substring(0, out_path.length() - 4) + "_optimized.sql").toPath(),
+        Files.writeString(
+                new File(out_path + '/' + file_name.substring(0, out_path.length() - 4) + "_optimized.sql").toPath(),
                 final_sql);
 
         return final_sql;
+    }
+
+    private void buildHeuristicOptimizer() {
+
+        HepProgramBuilder programBuilder = new HepProgramBuilder();
+
+        programBuilder.addRuleInstance(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+        programBuilder.addRuleInstance(CoreRules.FILTER_INTO_JOIN);
+        programBuilder.addRuleInstance(CoreRules.JOIN_CONDITION_PUSH);
+        programBuilder.addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE);
+        programBuilder.addRuleInstance(CoreRules.SORT_REMOVE);
+        programBuilder.addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+
+        HepProgram program = programBuilder.build();
+
+        HepPlanner planner = new HepPlanner(program);
+
+        planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+        this.planner = planner;
+
     }
 
     private class Context {
@@ -139,6 +189,8 @@ public class Optimizer {
             RelOptPlanner planner = new HepPlanner(programBuilder.build());
 
             RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+
+            this.cluster = cluster;
 
             SqlToRelConverter.Config converterConfig = SqlToRelConverter.config()
                     .withTrimUnusedFields(true)
