@@ -12,6 +12,9 @@ OUTPUT_DIR=$1
 # ./duckdb data.db < input/data/load.sql
 
 # Build and run the Calcite app.
+
+rm -rf output/*
+
 cd calcite_app/
 ./gradlew build
 ./gradlew shadowJar

@@ -5,28 +5,10 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Properties;
-import javax.sql.DataSource;
 import java.nio.file.Files;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.sql.SqlExplainFormat;
-import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.linq4j.tree.DefaultExpression;
-import org.apache.calcite.adapter.jdbc.JdbcSchema;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.jdbc.CalciteSchema;
-import java.sql.Connection;
-import java.sql.DriverManager;
 
 public class App {
-    private static void SerializePlan(RelNode relNode, File outputPath) throws IOException {
-        Files.writeString(outputPath.toPath(),
-                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
-    }
 
     private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
         ResultSetMetaData metaData = resultSet.getMetaData();
@@ -73,24 +55,10 @@ public class App {
         // we guide you towards the explicit method in the writeup.
 
         // Connect to DuckDB
-        String url = "jdbc:duckdb:../data.db";
 
-        String schemaName = "duckdb";
+        CalciteSchema rootSchema = Optimizer.loadJdbcSchema(args[0]);
 
-        CalciteSchema rootSchema = CalciteSchema.createRootSchema(false);
-
-        String driverClassName = "org.duckdb.DuckDBDriver";
-        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
-
-        Connection connection = dataSource.getConnection();
-
-        System.out.println(connection.isClosed());
-
-        JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema.plus(), schemaName, dataSource, null, null);
-
-        System.out.println("Loaded tables: " + jdbcSchema.getTableNames());
-
-        rootSchema.add(schemaName, jdbcSchema);
+        System.out.println(rootSchema.getTableNames());
 
         Optimizer optimizer = new Optimizer(rootSchema);
         // Iterate over target queries
