@@ -19,6 +19,8 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerator;
 
 public class CustomTable extends AbstractTable implements ScannableTable {
     private static final int BATCH_SIZE = 1000;
@@ -40,7 +42,35 @@ public class CustomTable extends AbstractTable implements ScannableTable {
 
     @Override
     public Enumerable<Object[]> scan(DataContext root) {
-        return null;
+        return new AbstractEnumerable<Object[]>() {
+            @Override
+            public Enumerator<Object[]> enumerator() {
+                return new Enumerator<Object[]>() {
+                    private int index = -1;
+
+                    @Override
+                    public Object[] current() {
+                        return data.get(index);
+                    }
+
+                    @Override
+                    public boolean moveNext() {
+                        index++;
+                        return index < data.size();
+                    }
+
+                    @Override
+                    public void reset() {
+                        index = -1;
+                    }
+
+                    @Override
+                    public void close() {
+                        // No resources to clean up
+                    }
+                };
+            }
+        };
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -66,23 +96,22 @@ public class CustomTable extends AbstractTable implements ScannableTable {
                 }
             }
 
-            // try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
-            // int columnCount = rs.getMetaData().getColumnCount();
-            // int rowCount = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
+                int columnCount = rs.getMetaData().getColumnCount();
+                int rowCount = 0;
 
-            // while (rs.next()) {
-            // Object[] row = new Object[columnCount];
-            // for (int i = 0; i < columnCount; i++) {
-            // row[i] = rs.getObject(i + 1);
-            // }
-            // data.add(row);
+                while (rs.next()) {
+                    Object[] row = new Object[columnCount];
+                    for (int i = 0; i < columnCount; i++) {
+                        row[i] = rs.getObject(i + 1);
+                    }
+                    data.add(row);
 
-            // rowCount++;
-            // if (rowCount % BATCH_SIZE == 0) {
-            // System.out.println("Loaded " + rowCount + " rows from " + tableName);
-            // }
-            // }
-            // }
+                    rowCount++;
+                }
+
+                System.out.println("Loaded " + rowCount + " rows from " + tableName);
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Error loading data from JDBC table: " +
                     e.getMessage(), e);

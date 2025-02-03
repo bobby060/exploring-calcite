@@ -19,6 +19,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -99,7 +100,7 @@ public class Context {
         this.sql2relConverter = converter;
 
         RelToSqlConverter rel2sqlconverter = new RelToSqlConverter(
-                PostgresqlSqlDialect.DEFAULT);
+                MysqlSqlDialect.DEFAULT);
 
         this.rel2sqlConverter = rel2sqlconverter;
 

@@ -1,0 +1,16 @@
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE

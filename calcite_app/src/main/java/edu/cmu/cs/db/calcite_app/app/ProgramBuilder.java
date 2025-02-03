@@ -2,6 +2,7 @@ package edu.cmu.cs.db.calcite_app.app;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
+import org.apache.calcite.adapter.jdbc.JdbcRules;
 import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverterRule;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -16,6 +17,9 @@ import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import edu.cmu.cs.db.calcite_app.app.rules.JdbcToLogicalTableScanRule;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
+
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 
 /**
  * ProgramBuilder class for building a HepProgram
@@ -96,7 +100,7 @@ public class ProgramBuilder {
 
     }
 
-    protected static VolcanoPlanner buildTransFormmToEnumerablePlanner() {
+    protected static VolcanoPlanner buildTransFormToEnumerablePlanner() {
 
         VolcanoPlanner planner = new VolcanoPlanner();
 
@@ -107,7 +111,7 @@ public class ProgramBuilder {
         }
 
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-        planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+        // planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 
         return planner;
 
@@ -123,16 +127,43 @@ public class ProgramBuilder {
         // planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
         // planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
 
-        planner.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+        // planner.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS); // Causes
+        // aggregate error
         planner.addRule(CoreRules.FILTER_INTO_JOIN);
         planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
+        planner.addRule(CoreRules.PROJECT_FILTER_VALUES_MERGE);
         planner.addRule(CoreRules.PROJECT_FILTER_TRANSPOSE);
+        planner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+        planner.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
         planner.addRule(CoreRules.SORT_REMOVE);
         planner.addRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+        planner.addRule(CoreRules.SORT_REMOVE_REDUNDANT);
+        planner.addRule(CoreRules.AGGREGATE_REMOVE);
+        planner.addRule(CoreRules.PROJECT_REMOVE);
+        // planner.add
+        planner.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+        // planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
+        // planner.addRule(PruneEmptyRules.AGGREGATE_INSTANCE);
 
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
         planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 
+        // planner.addRule(JdbcRules.)
+
+        for (RelOptRule rule : EnumerableRules.ENUMERABLE_RULES) {
+            // // if (rule != EnumerableRules.ENUMERABLE_LIMIT_RULE) { // Rel2sql doesn't
+            // // support limit
+            planner.addRule(rule);
+            // // }
+        }
+
+        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
         return planner;
     }
 }

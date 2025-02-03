@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -12,18 +15,28 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.logical.ToLogicalConverter;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.RelRunners;
 
 public class Optimizer {
     private Context context;
@@ -81,9 +94,13 @@ public class Optimizer {
                 RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
 
         // Step 4: Implement rule based optimizations
+
+        // RelOptCluster cluster = context.cluster;
         RelOptCluster cluster = context.cluster;
         System.out.println(cluster.traitSet());
-        RelTraitSet desiredTrait = cluster.traitSet().plus(EnumerableConvention.INSTANCE);
+        RelTraitSet desiredTrait = context.cluster.traitSet().replace(EnumerableConvention.INSTANCE);
+        // RelTraitSet desiredTrait =
+        // context.cluster.traitSet().replace(context.jdbcConvention);
 
         System.out.println(desiredTrait.toString());
 
@@ -97,17 +114,31 @@ public class Optimizer {
 
         // Step 5: Improve with statistics
 
-        // Step 6: Use RelToSqlConverter to convert sql for running in DuckDB
+        PreparedStatement statement = RelRunners.run(bestExp);
+
+        ResultSet resultSet = statement.executeQuery();
+
+        SerializeResultSet(resultSet,
+                new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_results.txt"));
 
         // Write the optimized plan to a file
         SerializePlan(bestExp.stripped(),
                 new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_optimized.txt"));
 
+        FrameworkConfig frameworkConfig = Frameworks.newConfigBuilder()
+                .parserConfig(SqlParser.config().withCaseSensitive(false))
+                .build();
+
+        ToLogicalConverter toLogicalConverter = new ToLogicalConverter(RelBuilder.create(frameworkConfig));
+
+        RelNode logicalRelNode = toLogicalConverter.visit(bestExp.stripped());
+
+        // But save logical version to sql
         SqlNode optimizedSqlNode = this.context.rel2sqlConverter
-                .visitRoot(bestExp.stripped())
+                .visitRoot(logicalRelNode.stripped())
                 .asStatement();
 
-        String final_sql = optimizedSqlNode.toSqlString(PostgresqlSqlDialect.DEFAULT).getSql();
+        String final_sql = optimizedSqlNode.toSqlString(MysqlSqlDialect.DEFAULT).getSql();
 
         Files.writeString(
                 new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_optimized.sql").toPath(),
@@ -119,6 +150,29 @@ public class Optimizer {
     private static void SerializePlan(RelNode relNode, File outputPath) throws IOException {
         Files.writeString(outputPath.toPath(),
                 RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+    }
+
+    private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        StringBuilder resultSetString = new StringBuilder();
+        for (int i = 1; i <= columnCount; i++) {
+            if (i > 1) {
+                resultSetString.append(", ");
+            }
+            resultSetString.append(metaData.getColumnName(i));
+        }
+        resultSetString.append("\n");
+        while (resultSet.next()) {
+            for (int i = 1; i <= columnCount; i++) {
+                if (i > 1) {
+                    resultSetString.append(", ");
+                }
+                resultSetString.append(resultSet.getString(i));
+            }
+            resultSetString.append("\n");
+        }
+        Files.writeString(outputPath.toPath(), resultSetString.toString());
     }
 
     /**
