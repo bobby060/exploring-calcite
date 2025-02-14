@@ -1,0 +1,174 @@
+package edu.cmu.cs.db.calcite_app.app;
+
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
+
+import org.apache.calcite.plan.volcano.AbstractConverter;
+
+/**
+ * ProgramBuilder class for building a HepProgram
+ * 
+ * The purpose of pulling this class out is to provide an easy place to modify
+ * the rule set
+ */
+public class ProgramBuilder {
+
+    /**
+     * Builds a HepProgram
+     * 
+     * @return HepProgram
+     */
+    protected static HepProgram buildHep() {
+        HepProgramBuilder programBuilder = new HepProgramBuilder();
+
+        // programBuilder.addRuleInstance(JdbcToLogicalTableScanRule.DEFAULT_CONFIG.toRule());
+
+        // programBuilder.addRuleInstance(JdbcToEnumerableConverterRule.create(jdbcConvention));
+
+        // programBuilder.addRuleClass(SubQueryRemoveRule.class);
+
+        // programBuilder.addRuleInstance(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+        // programBuilder.addRuleInstance(CoreRules.FILTER_INTO_JOIN);
+        // programBuilder.addRuleInstance(CoreRules.JOIN_CONDITION_PUSH);
+        // programBuilder.addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE);
+        // programBuilder.addRuleInstance(CoreRules.SORT_REMOVE);
+        // programBuilder.addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+
+        // // Filter push downs
+        // programBuilder.addRuleInstance(CoreRules.FILTER_CORRELATE);
+        // programBuilder.addRuleInstance(CoreRules.FILTER_INTO_JOIN);
+
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+
+        // programBuilder.addRuleCollection(EnumerableRules.ENUMERABLE_RULES);
+        // planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_SORT_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_FILTER_RULE);
+
+        programBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
+
+        return programBuilder.build();
+
+    }
+
+    /**
+     * Builds a heuristic optimizer
+     */
+    protected static RelOptPlanner buildHeuristicOptimizer() {
+
+        HepProgram program = ProgramBuilder.buildHep();
+
+        HepPlanner planner = new HepPlanner(program);
+
+        // planner.changeTraits
+        // planner.addRelTraitDef(EnumerableConvention.INSTANCE.getTraitDef());
+        // planner.addRelTraitDef(this.jdbcConvention.getTraitDef());
+        planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+        // planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        // // programBuilder.addRuleCollection(EnumerableRules.ENUMERABLE_RULES);
+        // planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+
+        // planner.addRelTraitDef(CallingConvention.;
+
+        return planner;
+
+    }
+
+    protected static VolcanoPlanner buildVolcanoPlanner() {
+        VolcanoPlanner planner = new VolcanoPlanner();
+        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+
+        // planner.
+
+        // for (RelOptRule rule : EnumerableRules.ENUMERABLE_RULES) {
+        // // if (rule != EnumerableRules.ENUMERABLE_LIMIT_RULE) { // Rel2sql doesn't
+        // // // support limit
+        // if (rule != EnumerableRules.ENUMERABLE_CORRELATE_RULE && rule !=
+        // EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE) {
+        // planner.addRule(rule);
+        // }
+        // }
+
+        // planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+
+        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+        // planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
+
+        planner.addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
+
+        // planner.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS); // Causes
+        // aggregate error
+        // planner.addRule(CoreRules.FILTER_INTO_JOIN);
+        // // planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
+        planner.addRule(CoreRules.PROJECT_FILTER_VALUES_MERGE);
+        planner.addRule(CoreRules.PROJECT_FILTER_TRANSPOSE);
+        planner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+        // planner.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+        planner.addRule(CoreRules.PROJECT_JOIN_TRANSPOSE);
+        // planner.addRule(CoreRules.FILTER_JOIN_TRANSPOSE);
+
+        planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
+        // planner.addRule(CoreRules.JOIN_ASSOCIATE);
+        planner.addRule(CoreRules.JOIN_COMMUTE);
+        planner.addRule(CoreRules.JOIN_PUSH_EXPRESSIONS);
+        planner.addRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
+        // planner.addRule(CoreRules.JOIN_TO_CORRELATE);
+
+        planner.addRule(CoreRules.PROJECT_REMOVE);
+        planner.addRule(CoreRules.AGGREGATE_PROJECT_MERGE);
+        planner.addRule(CoreRules.PROJECT_TO_SEMI_JOIN);
+        planner.addRule(CoreRules.SORT_REMOVE);
+        planner.addRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+        planner.addRule(CoreRules.SORT_REMOVE_REDUNDANT);
+        planner.addRule(CoreRules.AGGREGATE_REMOVE);
+        planner.addRule(CoreRules.PROJECT_REMOVE);
+        // // planner.add
+        // planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
+        // planner.addRule(PruneEmptyRules.AGGREGATE_INSTANCE);
+        // planner.addRule(PruneEmptyRules.FILTER_INSTANCE);
+        // planner.addRule(PruneEmptyRules.JOIN_LEFT_INSTANCE);
+        // planner.addRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE);
+        // // planner.addRule(PruneEmptyRules.SORT_INSTANCE);
+        // planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
+        // planner.addRule(CoreRules.FILTER_SCAN);
+
+        planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+        planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+
+        // // Needed to convert logical stuff with sorts?
+        // planner.addRule(CoreRules.SORT_JOIN_TRANSPOSE);
+        // planner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
+
+        return planner;
+    }
+}

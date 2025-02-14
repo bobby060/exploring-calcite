@@ -1,167 +1,170 @@
 package edu.cmu.cs.db.calcite_app.app;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 
-import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.config.CalciteConnectionProperty;
+import javax.sql.DataSource;
+
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.jdbc.JdbcConvention;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
-import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.logical.ToLogicalConverter;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.RelRunners;
 
 public class Optimizer {
-
-    private CalciteSchema rootSchema;
     private Context context;
 
-    public Optimizer(CalciteSchema rootSchema) {
-        this.rootSchema = rootSchema;
-        this.context = new Context(rootSchema);
+    /**
+     * Initializes the optimizer with the given root schema
+     * 
+     * @param rootSchema
+     */
+    public Optimizer(String inputPath) throws Exception {
+        this.context = new Context(inputPath);
     }
 
+    /**
+     * Optimizes the given SQL query
+     * 
+     * @param filepath
+     * @param out_path
+     * @return
+     * @throws Exception
+     */
     public String optimize(String filepath, String out_path) throws Exception {
-        String sql = Files.readString(new File(filepath).toPath());
 
-        System.out.println(filepath);
-
-        Files.writeString(new File(out_path).toPath(), sql);
+        String fileName = filepath.substring(filepath.lastIndexOf("/") + 1);
+        String originalSql = Files.readString(new File(filepath).toPath());
 
         // Step 1: Use SqlParser to convert SQL string to SQLNode
-        SqlParser.Config config = SqlParser.config()
-                .withCaseSensitive(false);
-
-        SqlParser parser = SqlParser.create(sql, config);
         SqlNode sqlNode;
-
         try {
-            sqlNode = parser.parseQuery();
+            sqlNode = SqlParser.create(originalSql, SqlParser.config()
+                    .withCaseSensitive(false)).parseQuery();
         } catch (SqlParseException e) {
             throw new Exception("Error parsing SQL: " + e.getMessage());
         }
 
         // Step 2: Use SQL validator to validate tree
-        SqlNode validatedNode = this.context.validator.validate(sqlNode);
+        SqlNode validatedNode = context.validator.validate(sqlNode);
 
-        System.out.println(validatedNode);
-
-        // Step 3: convert to relnode
+        // Step 3: convert to relnode and add trait
 
         // Convert SQL to Rel
-        RelRoot relRoot = this.context.sql2relConverter.convertQuery(validatedNode, false, true);
-        RelNode relNode = relRoot.rel;
+        RelRoot relRoot = context.sql2relConverter.convertQuery(validatedNode, false, true);
+        RelNode originalPlan = relRoot.rel;
 
-        // For debugging, print the relational algebra tree
-        System.out.println("Relational algebra plan:");
-        System.out.println(RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+        context.planner.setRoot(originalPlan);
 
-        // Write the optimized plan to a file
-        Files.writeString(new File(out_path.substring(0, out_path.length() - 4) + "_optimized.txt").toPath(),
-                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
-        // Step 4: Implement rule based optimizations
+        RelNode planWithTrait = context.planner.changeTraits(originalPlan,
+                context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
 
-        // Step 5: Improve with statistics
+        context.planner.setRoot(planWithTrait);
 
-        // Step 6: Use RelToSqlConverter to convert sql for running in DuckDB
+        // Step 4: Optimize with default planner
+        RelNode bestExp = context.planner.findBestExp();
 
-        SqlNode optimizedSqlNode = this.context.rel2sqlConverter.visitRoot(relNode).asStatement();
+        // Step 5: Run
 
-        String final_sql = optimizedSqlNode.toSqlString(PostgresqlSqlDialect.DEFAULT).getSql();
+        // Connection
+        // Connection connection = context.connection.unwrap(Connection.class);
 
-        Files.writeString(new File(out_path.substring(0, out_path.length() - 4) + "_optimized.sql").toPath(),
+        // DataContext dataContext = DataContext.create(connection);
+
+        // PreparedStatement statement = RelRunners.run(bestExp.stripped());
+
+        // ResultSet resultSet = statement.executeQuery();
+
+        // SerializeResultSet(resultSet,
+        // new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) +
+        // "_results.txt"));
+
+        // Decorrelate bc of bugs in calcite
+        RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(bestExp.stripped(),
+                RelBuilder.create(context.frameworkConfig));
+
+        // But save logical version to sql
+        SqlNode optimizedSqlNode = this.context.rel2sqlConverter
+                .visitRoot(decorrelatedNode.stripped())
+                .asStatement();
+
+        String final_sql = optimizedSqlNode.toSqlString(MysqlSqlDialect.DEFAULT).getSql();
+
+        // Write the original SQL, original plan, optimized plan, and optimized SQL to
+        Files.writeString(new File(out_path + "/" + fileName).toPath(), originalSql);
+        SerializePlan(originalPlan, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + ".txt"));
+        SerializePlan(bestExp.stripped(),
+                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.txt"));
+        Files.writeString(
+                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.sql").toPath(),
                 final_sql);
+
+        PreparedStatement statement = context.connection.unwrap(RelRunner.class).prepareStatement(bestExp);
+
+        ResultSet resultSet = statement.executeQuery();
+
+        SerializeResultSet(resultSet, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) +
+                "_results.csv"));
 
         return final_sql;
     }
 
-    private class Context {
-        SqlParser parser;
-        CalciteSchema rootSchema;
-        CalciteCatalogReader catalogReader;
-        CalciteConnectionConfig connectionConfig;
-        RelDataTypeFactory typeFactory;
-        SqlToRelConverter sql2relConverter;
-        HepProgramBuilder programBuilder;
-        RelToSqlConverter rel2sqlConverter;
-        SqlValidator validator;
-        RelOptPlanner planner;
-        RelOptCluster cluster;
+    private static void SerializePlan(RelNode relNode, File outputPath) throws IOException {
+        Files.writeString(outputPath.toPath(),
+                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+    }
 
-        public Context(CalciteSchema rootSchema) {
-            RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
-            this.typeFactory = typeFactory;
-
-            CalciteConnectionConfig connectionConfig = CalciteConnectionConfig.DEFAULT.set(
-                    CalciteConnectionProperty.CASE_SENSITIVE,
-                    "false");
-
-            this.connectionConfig = connectionConfig;
-
-            CalciteCatalogReader catalogReader = new CalciteCatalogReader(
-                    rootSchema,
-                    List.of("duckdb"), // List of schema paths to search
-                    typeFactory,
-                    connectionConfig);
-
-            this.catalogReader = catalogReader;
-
-            // Create the validator
-            SqlValidator validator = SqlValidatorUtil.newValidator(
-                    SqlStdOperatorTable.instance(),
-                    catalogReader,
-                    typeFactory,
-                    SqlValidator.Config.DEFAULT);
-
-            RexBuilder rexBuilder = new RexBuilder(typeFactory);
-
-            HepProgramBuilder programBuilder = new HepProgramBuilder();
-            RelOptPlanner planner = new HepPlanner(programBuilder.build());
-
-            RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-
-            SqlToRelConverter.Config converterConfig = SqlToRelConverter.config()
-                    .withTrimUnusedFields(true)
-                    .withExpand(false);
-
-            SqlToRelConverter converter = new SqlToRelConverter(
-                    null, // ViewExpander - null for now
-                    validator,
-                    catalogReader,
-                    cluster,
-                    StandardConvertletTable.INSTANCE,
-                    converterConfig);
-
-            this.sql2relConverter = converter;
-
-            RelToSqlConverter rel2sqlconverter = new RelToSqlConverter(
-                    PostgresqlSqlDialect.DEFAULT);
-
-            this.rel2sqlConverter = rel2sqlconverter;
-
-            this.validator = validator;
-            this.rootSchema = rootSchema;
+    private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        StringBuilder resultSetString = new StringBuilder();
+        for (int i = 1; i <= columnCount; i++) {
+            if (i > 1) {
+                resultSetString.append(", ");
+            }
+            resultSetString.append(metaData.getColumnName(i));
         }
+        resultSetString.append("\n");
+        while (resultSet.next()) {
+            for (int i = 1; i <= columnCount; i++) {
+                if (i > 1) {
+                    resultSetString.append(", ");
+                }
+                resultSetString.append(resultSet.getString(i));
+            }
+            resultSetString.append("\n");
+        }
+        Files.writeString(outputPath.toPath(), resultSetString.toString());
     }
 
 }

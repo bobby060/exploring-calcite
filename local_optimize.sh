@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# run program without initializing data. Also clears output
+
 set -euo pipefail
 
 OUTPUT_DIR=$1
@@ -12,6 +14,9 @@ OUTPUT_DIR=$1
 # ./duckdb data.db < input/data/load.sql
 
 # Build and run the Calcite app.
+
+rm -rf output/*
+
 cd calcite_app/
 ./gradlew build
 ./gradlew shadowJar
