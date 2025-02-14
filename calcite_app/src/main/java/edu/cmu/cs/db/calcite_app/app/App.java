@@ -1,37 +1,9 @@
 package edu.cmu.cs.db.calcite_app.app;
 
 import java.io.File;
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.nio.file.Files;
 import org.apache.calcite.jdbc.CalciteSchema;
 
 public class App {
-
-    private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
-        ResultSetMetaData metaData = resultSet.getMetaData();
-        int columnCount = metaData.getColumnCount();
-        StringBuilder resultSetString = new StringBuilder();
-        for (int i = 1; i <= columnCount; i++) {
-            if (i > 1) {
-                resultSetString.append(", ");
-            }
-            resultSetString.append(metaData.getColumnName(i));
-        }
-        resultSetString.append("\n");
-        while (resultSet.next()) {
-            for (int i = 1; i <= columnCount; i++) {
-                if (i > 1) {
-                    resultSetString.append(", ");
-                }
-                resultSetString.append(resultSet.getString(i));
-            }
-            resultSetString.append("\n");
-        }
-        Files.writeString(outputPath.toPath(), resultSetString.toString());
-    }
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
@@ -56,17 +28,16 @@ public class App {
 
         // Connect to DuckDB
 
-        CalciteSchema rootSchema = Optimizer.loadJdbcSchema(args[0]);
-
-        System.out.println(rootSchema.getTableNames());
-
-        Optimizer optimizer = new Optimizer(rootSchema);
+        Optimizer optimizer = new Optimizer(args[0]);
         // Iterate over target queries
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
-            System.out.println("Optimizing query: " + file.getName());
-            String optimizedQuery = optimizer.optimize(file.getPath(), args[1]);
-            System.out.println(optimizedQuery);
+            // if (file.getName().endsWith(".sql")) {
+            if (file.getName().equals("aquery.sql")) {
+                System.out.println("Optimizing query: " + file.getName());
+                String optimizedQuery = optimizer.optimize(file.getPath(), args[1]);
+                System.out.println(optimizedQuery);
+            }
         }
     }
 }

@@ -15,10 +15,15 @@ mkdir -p input/
 # Extract the workload.
 tar xzf "${WORKLOAD}" --directory input/
 
+cd calcite_app
+
 # Feel free to add more steps here.
+# init the database
+../duckdb -init ../input/data/schema.sql -no-stdin ../data.db
+../duckdb -init ../input/data/load.sql -no-stdin ../data.db
+
 
 # Build and run the Calcite app.
-cd calcite_app/
 ./gradlew build
 ./gradlew shadowJar
 ./gradlew --stop

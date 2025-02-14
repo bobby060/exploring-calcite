@@ -18,6 +18,10 @@ dependencies {
     implementation("org.apache.calcite:calcite-core:${CALCITE_VERSION}")
     implementation("org.apache.calcite:calcite-server:${CALCITE_VERSION}")
     implementation("org.duckdb:duckdb_jdbc:1.1.3")
+    implementation("org.apache.hadoop:hadoop-common:2.7.0")
+    implementation("org.apache.parquet:parquet-avro:1.13.1")
+    implementation("org.apache.parquet:parquet-hadoop:1.9.0")
+    implementation("org.apache.avro:avro:1.11.3")
     annotationProcessor("org.immutables:value:2.8.8")
     compileOnly("org.immutables:value:2.8.8")
 }

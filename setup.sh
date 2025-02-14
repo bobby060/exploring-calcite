@@ -3,6 +3,7 @@ set -euxo pipefail
 
 # Install OpenJDK 17.
 sudo apt install openjdk-17-jdk
+sudo apt install unzip
 
 # Download and extract DuckDB.
 wget --quiet https://github.com/duckdb/duckdb/releases/download/v1.1.3/duckdb_cli-linux-amd64.zip

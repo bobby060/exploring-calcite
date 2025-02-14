@@ -14,6 +14,7 @@ import javax.sql.DataSource;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -21,8 +22,10 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -46,8 +49,8 @@ public class Optimizer {
      * 
      * @param rootSchema
      */
-    public Optimizer(CalciteSchema rootSchema) {
-        this.context = new Context(rootSchema);
+    public Optimizer(String inputPath) throws Exception {
+        this.context = new Context(inputPath);
     }
 
     /**
@@ -60,20 +63,14 @@ public class Optimizer {
      */
     public String optimize(String filepath, String out_path) throws Exception {
 
-        String file_name = filepath.substring(filepath.lastIndexOf("/") + 1);
-
-        String sql = Files.readString(new File(filepath).toPath());
-
-        // Write the original SQL to a file
-        Files.writeString(new File(out_path + "/" + file_name).toPath(), sql);
+        String fileName = filepath.substring(filepath.lastIndexOf("/") + 1);
+        String originalSql = Files.readString(new File(filepath).toPath());
 
         // Step 1: Use SqlParser to convert SQL string to SQLNode
-        SqlParser parser = SqlParser.create(sql, SqlParser.config()
-                .withCaseSensitive(false));
         SqlNode sqlNode;
-
         try {
-            sqlNode = parser.parseQuery();
+            sqlNode = SqlParser.create(originalSql, SqlParser.config()
+                    .withCaseSensitive(false)).parseQuery();
         } catch (SqlParseException e) {
             throw new Exception("Error parsing SQL: " + e.getMessage());
         }
@@ -81,68 +78,63 @@ public class Optimizer {
         // Step 2: Use SQL validator to validate tree
         SqlNode validatedNode = context.validator.validate(sqlNode);
 
-        // Step 3: convert to relnode
+        // Step 3: convert to relnode and add trait
 
         // Convert SQL to Rel
         RelRoot relRoot = context.sql2relConverter.convertQuery(validatedNode, false, true);
-        RelNode relNode = relRoot.rel;
+        RelNode originalPlan = relRoot.rel;
 
-        SerializePlan(relNode, new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + ".txt"));
-        // For debugging, print the relational algebra tree
-        System.out.println("Relational algebra plan:");
-        System.out.println(
-                RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
+        context.planner.setRoot(originalPlan);
 
-        // Step 4: Implement rule based optimizations
+        RelNode planWithTrait = context.planner.changeTraits(originalPlan,
+                context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
 
-        // RelOptCluster cluster = context.cluster;
-        RelOptCluster cluster = context.cluster;
-        System.out.println(cluster.traitSet());
-        RelTraitSet desiredTrait = context.cluster.traitSet().replace(EnumerableConvention.INSTANCE);
-        // RelTraitSet desiredTrait =
-        // context.cluster.traitSet().replace(context.jdbcConvention);
+        context.planner.setRoot(planWithTrait);
 
-        System.out.println(desiredTrait.toString());
-
-        context.planner.setRoot(relNode);
-
-        RelNode relNode2 = context.planner.changeTraits(relNode, desiredTrait);
-
-        context.planner.setRoot(relNode2);
-
+        // Step 4: Optimize with default planner
         RelNode bestExp = context.planner.findBestExp();
 
-        // Step 5: Improve with statistics
+        // Step 5: Run
 
-        PreparedStatement statement = RelRunners.run(bestExp);
+        // Connection
+        // Connection connection = context.connection.unwrap(Connection.class);
 
-        ResultSet resultSet = statement.executeQuery();
+        // DataContext dataContext = DataContext.create(connection);
 
-        SerializeResultSet(resultSet,
-                new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_results.txt"));
+        // PreparedStatement statement = RelRunners.run(bestExp.stripped());
 
-        // Write the optimized plan to a file
-        SerializePlan(bestExp.stripped(),
-                new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_optimized.txt"));
+        // ResultSet resultSet = statement.executeQuery();
 
-        FrameworkConfig frameworkConfig = Frameworks.newConfigBuilder()
-                .parserConfig(SqlParser.config().withCaseSensitive(false))
-                .build();
+        // SerializeResultSet(resultSet,
+        // new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) +
+        // "_results.txt"));
 
-        ToLogicalConverter toLogicalConverter = new ToLogicalConverter(RelBuilder.create(frameworkConfig));
-
-        RelNode logicalRelNode = toLogicalConverter.visit(bestExp.stripped());
+        // Decorrelate bc of bugs in calcite
+        RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(bestExp.stripped(),
+                RelBuilder.create(context.frameworkConfig));
 
         // But save logical version to sql
         SqlNode optimizedSqlNode = this.context.rel2sqlConverter
-                .visitRoot(logicalRelNode.stripped())
+                .visitRoot(decorrelatedNode.stripped())
                 .asStatement();
 
         String final_sql = optimizedSqlNode.toSqlString(MysqlSqlDialect.DEFAULT).getSql();
 
+        // Write the original SQL, original plan, optimized plan, and optimized SQL to
+        Files.writeString(new File(out_path + "/" + fileName).toPath(), originalSql);
+        SerializePlan(originalPlan, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + ".txt"));
+        SerializePlan(bestExp.stripped(),
+                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.txt"));
         Files.writeString(
-                new File(out_path + '/' + file_name.substring(0, file_name.length() - 4) + "_optimized.sql").toPath(),
+                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.sql").toPath(),
                 final_sql);
+
+        PreparedStatement statement = context.connection.unwrap(RelRunner.class).prepareStatement(bestExp);
+
+        ResultSet resultSet = statement.executeQuery();
+
+        SerializeResultSet(resultSet, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) +
+                "_results.csv"));
 
         return final_sql;
     }
@@ -173,39 +165,6 @@ public class Optimizer {
             resultSetString.append("\n");
         }
         Files.writeString(outputPath.toPath(), resultSetString.toString());
-    }
-
-    /**
-     * Loads the schema from the given database path
-     * 
-     * @param db_path
-     * @return CalciteSchema
-     */
-    protected static CalciteSchema loadJdbcSchema(String db_path) throws SQLException {
-
-        String url = "jdbc:duckdb:../data.db";
-
-        String schemaName = "duckdb";
-
-        CalciteSchema rootSchema = CalciteSchema.createRootSchema(false);
-
-        String driverClassName = "org.duckdb.DuckDBDriver";
-        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
-
-        Connection connection = dataSource.getConnection();
-
-        System.out.println(connection.isClosed());
-
-        JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema.plus(), schemaName, dataSource, null, null);
-
-        System.out.println("Loaded tables: " + jdbcSchema.getTableNames());
-
-        rootSchema.add(schemaName, jdbcSchema);
-
-        CalciteSchema customSchema = CustomSchema.convertJdbcSchema(jdbcSchema);
-
-        return customSchema;
-
     }
 
 }

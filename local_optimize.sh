@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# run program without initializing data. Also clears output
+
 set -euo pipefail
 
 OUTPUT_DIR=$1

@@ -1,11 +1,14 @@
 package edu.cmu.cs.db.calcite_app.app;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import javax.sql.DataSource;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -33,7 +36,13 @@ public class CustomSchema extends AbstractSchema {
         tableMap.put(name, table);
     }
 
-    public static CalciteSchema convertJdbcSchema(JdbcSchema jdbcSchema) {
+    /**
+     * Converts a JDBC schema to a Calcite schema
+     * 
+     * @param jdbcSchema
+     * @return CalciteSchema
+     */
+    private static CalciteSchema convertJdbcSchema(JdbcSchema jdbcSchema) {
         CustomSchema CustomSchema = new CustomSchema();
 
         // Get all tables from JDBC schema
@@ -56,5 +65,36 @@ public class CustomSchema extends AbstractSchema {
         calciteSchema.add("duck_db", CustomSchema);
 
         return calciteSchema;
+    }
+
+    /**
+     * Loads the schema from the given database path
+     * 
+     * @param db_path
+     * @return CalciteSchema
+     */
+    protected static CalciteSchema fromDuckDb(String db_path) throws SQLException {
+
+        String url = "jdbc:duckdb:../data.db";
+
+        String schemaName = "duckdb";
+
+        CalciteSchema jdbcRootSchema = CalciteSchema.createRootSchema(false);
+
+        String driverClassName = "org.duckdb.DuckDBDriver";
+        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
+
+        Connection connection = dataSource.getConnection();
+
+        System.out.println(connection.isClosed());
+
+        JdbcSchema jdbcSchema = JdbcSchema.create(jdbcRootSchema.plus(), schemaName, dataSource, null, null);
+
+        System.out.println("Loaded tables: " + jdbcSchema.getTableNames());
+
+        CalciteSchema customSchema = CustomSchema.convertJdbcSchema(jdbcSchema);
+
+        return customSchema;
+
     }
 }
