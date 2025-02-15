@@ -29,6 +29,7 @@ public class CustomSchema extends AbstractSchema {
 
     @Override
     protected Map<String, Table> getTableMap() {
+
         return tableMap;
     }
 
@@ -48,6 +49,8 @@ public class CustomSchema extends AbstractSchema {
         // Get all tables from JDBC schema
         Set<String> tableNames = jdbcSchema.getTableNames();
 
+        System.out.println("Table names: " + tableNames);
+
         // Copy each table to the in-memory schema
         for (String tableName : tableNames) {
             Table jdbcTable = jdbcSchema.getTable(tableName);
@@ -62,9 +65,9 @@ public class CustomSchema extends AbstractSchema {
         }
 
         CalciteSchema calciteSchema = CalciteSchema.createRootSchema(true, false);
-        calciteSchema.add("duck_db", CustomSchema);
+        calciteSchema.add("duckdb", CustomSchema);
 
-        return calciteSchema;
+        return calciteSchema.getSubSchema("duckdb", false);
     }
 
     /**
@@ -90,11 +93,42 @@ public class CustomSchema extends AbstractSchema {
 
         JdbcSchema jdbcSchema = JdbcSchema.create(jdbcRootSchema.plus(), schemaName, dataSource, null, null);
 
-        System.out.println("Loaded tables: " + jdbcSchema.getTableNames());
-
         CalciteSchema customSchema = CustomSchema.convertJdbcSchema(jdbcSchema);
+
+        System.out.println("Loaded tables: " + customSchema.getTableNames());
 
         return customSchema;
 
+    }
+
+    protected static void addTables(SchemaPlus rootSchema, String db_path) throws SQLException {
+
+        String url = "jdbc:duckdb:../data.db";
+
+        String schemaName = "duckdb";
+
+        CalciteSchema jdbcRootSchema = CalciteSchema.createRootSchema(false);
+
+        String driverClassName = "org.duckdb.DuckDBDriver";
+        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
+
+        JdbcSchema jdbcSchema = JdbcSchema.create(jdbcRootSchema.plus(), schemaName, dataSource, null, null);
+
+        Set<String> tableNames = jdbcSchema.getTableNames();
+
+        System.out.println("Table names: " + tableNames);
+
+        // Copy each table to the in-memory schema
+        for (String tableName : tableNames) {
+            Table jdbcTable = jdbcSchema.getTable(tableName);
+            if (jdbcTable != null) {
+                CustomTable table = CustomTable.fromJdbcTable(
+                        jdbcTable,
+                        tableName,
+                        jdbcSchema.getDataSource(),
+                        new JavaTypeFactoryImpl());
+                rootSchema.add(tableName, table);
+            }
+        }
     }
 }

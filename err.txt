@@ -1,0 +1,10 @@
+Note: /home/ubuntu/15799-s25-project1/calcite_app/src/main/java/edu/cmu/cs/db/calcite_app/app/CustomTable.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE

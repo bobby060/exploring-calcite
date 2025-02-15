@@ -20,8 +20,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -54,8 +53,12 @@ public class Context {
     JdbcConvention jdbcConvention;
     FrameworkConfig frameworkConfig;
     CalciteConnection connection;
+    RelOptCluster hepCluster;
+    RelOptPlanner hepPlanner;
 
     /**
+     * Initializes the context with the given root schema
+     * /**
      * Initializes the context with the given root schema
      * 
      * @param rootSchema
@@ -80,9 +83,12 @@ public class Context {
         // Set the root schema
         SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-        CalciteSchema childSchema = CustomSchema.fromDuckDb(inputPath);
+        // CalciteSchema childSchema = CustomSchema.fromDuckDb(inputPath);
 
-        rootSchema.add("duckdb", childSchema.schema);
+        // rootSchema.add("duckdb", childSchema.schema);
+        CustomSchema.addTables(rootSchema, inputPath);
+
+        System.out.println("Table Names in root: " + rootSchema.getTableNames());
 
         CalciteConnectionConfig connectionConfig = CalciteConnectionConfig.DEFAULT.set(
                 CalciteConnectionProperty.CASE_SENSITIVE,
@@ -91,14 +97,14 @@ public class Context {
         this.connectionConfig = connectionConfig;
 
         CalciteCatalogReader catalogReader = new CalciteCatalogReader(
-                childSchema,
-                List.of("duck_db"), // List of schema paths to search
+                CalciteSchema.from(rootSchema),
+                List.of(""), // List of schema paths to search
                 typeFactory,
                 connectionConfig);
 
         this.connection = calciteConnection;
 
-        this.connection.setSchema("duckdb");
+        // this.connection.setSchema("duckdb");
 
         this.catalogReader = catalogReader;
 
@@ -114,6 +120,10 @@ public class Context {
         RelOptPlanner planner = ProgramBuilder.buildVolcanoPlanner();
 
         RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+
+        this.hepPlanner = ProgramBuilder.buildHeuristicOptimizer();
+
+        this.hepCluster = RelOptCluster.create(hepPlanner, rexBuilder);
 
         this.cluster = cluster;
         this.planner = planner;
@@ -134,7 +144,7 @@ public class Context {
         this.sql2relConverter = converter;
 
         RelToSqlConverter rel2sqlconverter = new RelToSqlConverter(
-                MysqlSqlDialect.DEFAULT);
+                RedshiftSqlDialect.DEFAULT);
 
         this.rel2sqlConverter = rel2sqlconverter;
 
@@ -143,9 +153,9 @@ public class Context {
                 .build();
 
         this.validator = validator;
-        this.rootSchema = childSchema;
+        this.rootSchema = CalciteSchema.from(rootSchema);
 
-        this.jdbcConvention = JdbcConvention.of(PostgresqlSqlDialect.DEFAULT, null, "1");
+        this.jdbcConvention = JdbcConvention.of(RedshiftSqlDialect.DEFAULT, null, "1");
 
     }
 }

@@ -1,401 +1,108 @@
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-[main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
-Exception in thread "main" java.sql.SQLException: Error while preparing plan [EnumerableLimitSort(fetch=[100])
-  EnumerableAggregate(group=[{}], NUMWAIT=[COUNT()])
-    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-        EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-          EnumerableTableScan(table=[[duck_db, supplier]])
-          EnumerableTableScan(table=[[duck_db, lineitem]])
-        EnumerableTableScan(table=[[duck_db, orders]])
-      EnumerableTableScan(table=[[duck_db, nation]])
-]
-	at org.apache.calcite.avatica.Helper.createException(Helper.java:56)
-	at org.apache.calcite.avatica.Helper.createException(Helper.java:41)
-	at org.apache.calcite.jdbc.CalciteConnectionImpl.prepareStatement_(CalciteConnectionImpl.java:227)
-	at org.apache.calcite.jdbc.CalciteConnectionImpl.lambda$unwrap$0(CalciteConnectionImpl.java:187)
-	at edu.cmu.cs.db.calcite_app.app.Optimizer.optimize(Optimizer.java:132)
-	at edu.cmu.cs.db.calcite_app.app.App.main(App.java:38)
-Caused by: java.lang.RuntimeException: Error while compiling generated Java code:
-public static class Record1_0 implements java.io.Serializable {
-  public long f0;
-  public Record1_0() {}
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Record1_0)) {
-      return false;
-    }
-    return this.f0 == ((Record1_0) o).f0;
-  }
+Starting a Gradle Daemon, 3 stopped Daemons could not be reused, use --status for details
+Reusing configuration cache.
+> Task :processResources NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :compileJava
+> Task :classes
+> Task :compileTestJava NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :jar
+> Task :assemble
+> Task :build
 
-  public int hashCode() {
-    int h = 0;
-    h = org.apache.calcite.runtime.Utilities.hash(h, this.f0);
-    return h;
-  }
+BUILD SUCCESSFUL in 8s
+2 actionable tasks: 2 executed
+Configuration cache entry reused.
+Reusing configuration cache.
+> Task :processResources NO-SOURCE
+> Task :compileJava UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :shadowJar
 
-  public int compareTo(Record1_0 that) {
-    final int c;
-    c = org.apache.calcite.runtime.Utilities.compare(this.f0, that.f0);
-    if (c != 0) {
-      return c;
-    }
-    return 0;
-  }
-
-  public String toString() {
-    return "{f0=" + this.f0 + "}";
-  }
-
-}
-
-public org.apache.calcite.linq4j.Enumerable bind(final org.apache.calcite.DataContext root) {
-  final org.apache.calcite.linq4j.Enumerable _inputEnumerable = org.apache.calcite.schema.Schemas.enumerable((org.apache.calcite.schema.ScannableTable) root.getRootSchema().getSubSchema("duck_db").getTable("supplier"), root);
-  final org.apache.calcite.linq4j.AbstractEnumerable left = new org.apache.calcite.linq4j.AbstractEnumerable(){
-    public org.apache.calcite.linq4j.Enumerator enumerator() {
-      return new org.apache.calcite.linq4j.Enumerator(){
-          public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable.enumerator();
-          public void reset() {
-            inputEnumerator.reset();
-          }
-
-          public boolean moveNext() {
-            return inputEnumerator.moveNext();
-          }
-
-          public void close() {
-            inputEnumerator.close();
-          }
-
-          public Object current() {
-            return 0;
-          }
-
-        };
-    }
-
-  };
-  final org.apache.calcite.linq4j.Enumerable _inputEnumerable0 = org.apache.calcite.schema.Schemas.enumerable((org.apache.calcite.schema.ScannableTable) root.getRootSchema().getSubSchema("duck_db").getTable("lineitem"), root);
-  final org.apache.calcite.linq4j.AbstractEnumerable right = new org.apache.calcite.linq4j.AbstractEnumerable(){
-    public org.apache.calcite.linq4j.Enumerator enumerator() {
-      return new org.apache.calcite.linq4j.Enumerator(){
-          public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable0.enumerator();
-          public void reset() {
-            inputEnumerator.reset();
-          }
-
-          public boolean moveNext() {
-            return inputEnumerator.moveNext();
-          }
-
-          public void close() {
-            inputEnumerator.close();
-          }
-
-          public Object current() {
-            return 0;
-          }
-
-        };
-    }
-
-  };
-  final org.apache.calcite.linq4j.Enumerable _inputEnumerable1 = org.apache.calcite.schema.Schemas.enumerable((org.apache.calcite.schema.ScannableTable) root.getRootSchema().getSubSchema("duck_db").getTable("orders"), root);
-  final org.apache.calcite.linq4j.AbstractEnumerable right0 = new org.apache.calcite.linq4j.AbstractEnumerable(){
-    public org.apache.calcite.linq4j.Enumerator enumerator() {
-      return new org.apache.calcite.linq4j.Enumerator(){
-          public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable1.enumerator();
-          public void reset() {
-            inputEnumerator.reset();
-          }
-
-          public boolean moveNext() {
-            return inputEnumerator.moveNext();
-          }
-
-          public void close() {
-            inputEnumerator.close();
-          }
-
-          public Object current() {
-            return 0;
-          }
-
-        };
-    }
-
-  };
-  final org.apache.calcite.linq4j.Enumerable _inputEnumerable2 = org.apache.calcite.schema.Schemas.enumerable((org.apache.calcite.schema.ScannableTable) root.getRootSchema().getSubSchema("duck_db").getTable("nation"), root);
-  final org.apache.calcite.linq4j.AbstractEnumerable right1 = new org.apache.calcite.linq4j.AbstractEnumerable(){
-    public org.apache.calcite.linq4j.Enumerator enumerator() {
-      return new org.apache.calcite.linq4j.Enumerator(){
-          public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable2.enumerator();
-          public void reset() {
-            inputEnumerator.reset();
-          }
-
-          public boolean moveNext() {
-            return inputEnumerator.moveNext();
-          }
-
-          public void close() {
-            inputEnumerator.close();
-          }
-
-          public Object current() {
-            return 0;
-          }
-
-        };
-    }
-
-  };
-  java.util.List accumulatorAdders = new java.util.LinkedList();
-  accumulatorAdders.add(new org.apache.calcite.linq4j.function.Function2() {
-    public Record1_0 apply(Record1_0 acc, Object[] in) {
-      acc.f0++;
-      return acc;
-    }
-    public Record1_0 apply(Object acc, Object in) {
-      return apply(
-        (Record1_0) acc,
-        (Object[]) in);
-    }
-  }
-  );
-  org.apache.calcite.adapter.enumerable.AggregateLambdaFactory lambdaFactory = new org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory(
-    new org.apache.calcite.linq4j.function.Function0() {
-      public Object apply() {
-        long a0s0;
-        a0s0 = 0L;
-        Record1_0 record0;
-        record0 = new Record1_0();
-        record0.f0 = a0s0;
-        return record0;
-      }
-    }
-,
-    accumulatorAdders);
-  final java.util.Comparator comparator = new java.util.Comparator(){
-    public int compare(long v0, long v1) {
-      int c;
-      return 0;
-    }
-
-    public int compare(Object o0, Object o1) {
-      return this.compare((long) o0, (long) o1);
-    }
-
-  };
-  return org.apache.calcite.linq4j.EnumerableDefaults.orderBy(org.apache.calcite.linq4j.Linq4j.singletonEnumerable(org.apache.calcite.linq4j.EnumerableDefaults.nestedLoopJoin(org.apache.calcite.linq4j.EnumerableDefaults.nestedLoopJoin(org.apache.calcite.linq4j.EnumerableDefaults.nestedLoopJoin(left, right, new org.apache.calcite.linq4j.function.Predicate2() {
-      public boolean apply(int left, int right) {
-        return true;
-      }
-      public boolean apply(Integer left, Integer right) {
-        return apply(
-          left.intValue(),
-          right.intValue());
-      }
-      public boolean apply(Object left, Object right) {
-        return apply(
-          (Integer) left,
-          (Integer) right);
-      }
-    }
-    , new org.apache.calcite.linq4j.function.Function2() {
-      public Object[] apply(Integer left, Integer right) {
-        return new Object[] {
-            left,
-            right};
-      }
-      public Object[] apply(Object left, Object right) {
-        return apply(
-          (Integer) left,
-          (Integer) right);
-      }
-    }
-    , org.apache.calcite.linq4j.JoinType.INNER), right0, new org.apache.calcite.linq4j.function.Predicate2() {
-      public boolean apply(Object[] left, int right) {
-        return true;
-      }
-      public boolean apply(Object[] left, Integer right) {
-        return apply(
-          left,
-          right.intValue());
-      }
-      public boolean apply(Object left, Object right) {
-        return apply(
-          (Object[]) left,
-          (Integer) right);
-      }
-    }
-    , new org.apache.calcite.linq4j.function.Function2() {
-      public Object[] apply(Object[] left, Integer right) {
-        return new Object[] {
-            left[0],
-            left[1],
-            right};
-      }
-      public Object[] apply(Object left, Object right) {
-        return apply(
-          (Object[]) left,
-          (Integer) right);
-      }
-    }
-    , org.apache.calcite.linq4j.JoinType.INNER), right1, new org.apache.calcite.linq4j.function.Predicate2() {
-      public boolean apply(Object[] left, int right) {
-        return true;
-      }
-      public boolean apply(Object[] left, Integer right) {
-        return apply(
-          left,
-          right.intValue());
-      }
-      public boolean apply(Object left, Object right) {
-        return apply(
-          (Object[]) left,
-          (Integer) right);
-      }
-    }
-    , new org.apache.calcite.linq4j.function.Function2() {
-      public Object[] apply(Object[] left, Integer right) {
-        return new Object[] {
-            left[0],
-            left[1],
-            left[2],
-            right};
-      }
-      public Object[] apply(Object left, Object right) {
-        return apply(
-          (Object[]) left,
-          (Integer) right);
-      }
-    }
-    , org.apache.calcite.linq4j.JoinType.INNER).aggregate(lambdaFactory.accumulatorInitializer().apply(), lambdaFactory.accumulatorAdder(), lambdaFactory.singleGroupResultSelector(new org.apache.calcite.linq4j.function.Function1() {
-      public long apply(Record1_0 acc) {
-        return acc.f0;
-      }
-      public Object apply(Object acc) {
-        return apply(
-          (Record1_0) acc);
-      }
-    }
-    ))), org.apache.calcite.linq4j.function.Functions.identitySelector(), comparator, 0, 100);
-}
-
-
-public Class getElementType() {
-  return long.class;
-}
-
-
-
-	at org.apache.calcite.avatica.Helper.wrap(Helper.java:37)
-	at org.apache.calcite.adapter.enumerable.EnumerableInterpretable.toBindable(EnumerableInterpretable.java:129)
-	at org.apache.calcite.prepare.CalcitePrepareImpl$CalcitePreparingStmt.implement(CalcitePrepareImpl.java:1190)
-	at org.apache.calcite.prepare.CalcitePrepareImpl$CalcitePreparingStmt.prepare_(CalcitePrepareImpl.java:1087)
-	at org.apache.calcite.prepare.CalcitePrepareImpl$CalcitePreparingStmt.prepareRel(CalcitePrepareImpl.java:1042)
-	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_(CalcitePrepareImpl.java:694)
-	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare_(CalcitePrepareImpl.java:524)
-	at org.apache.calcite.prepare.CalcitePrepareImpl.prepareSql(CalcitePrepareImpl.java:492)
-	at org.apache.calcite.jdbc.CalciteConnectionImpl.parseQuery(CalciteConnectionImpl.java:237)
-	at org.apache.calcite.jdbc.CalciteConnectionImpl.prepareStatement_(CalciteConnectionImpl.java:217)
-	... 3 more
-Caused by: org.codehaus.commons.compiler.CompileException: Line 170, Column 32: Cannot cast "java.lang.Object" to "long"
-	at org.codehaus.janino.UnitCompiler.compileError(UnitCompiler.java:13212)
-	at org.codehaus.janino.UnitCompiler.compileGet2(UnitCompiler.java:5304)
-	at org.codehaus.janino.UnitCompiler.access$8800(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$16.visitCast(UnitCompiler.java:4812)
-	at org.codehaus.janino.UnitCompiler$16.visitCast(UnitCompiler.java:4793)
-	at org.codehaus.janino.Java$Cast.accept(Java.java:5283)
-	at org.codehaus.janino.UnitCompiler.compileGet(UnitCompiler.java:4793)
-	at org.codehaus.janino.UnitCompiler.compileGetValue(UnitCompiler.java:5938)
-	at org.codehaus.janino.UnitCompiler.compileGet2(UnitCompiler.java:5443)
-	at org.codehaus.janino.UnitCompiler.access$9300(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$16.visitMethodInvocation(UnitCompiler.java:4817)
-	at org.codehaus.janino.UnitCompiler$16.visitMethodInvocation(UnitCompiler.java:4793)
-	at org.codehaus.janino.Java$MethodInvocation.accept(Java.java:5470)
-	at org.codehaus.janino.UnitCompiler.compileGet(UnitCompiler.java:4793)
-	at org.codehaus.janino.UnitCompiler.compileGetValue(UnitCompiler.java:5938)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:2897)
-	at org.codehaus.janino.UnitCompiler.access$2800(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$6.visitReturnStatement(UnitCompiler.java:1594)
-	at org.codehaus.janino.UnitCompiler$6.visitReturnStatement(UnitCompiler.java:1579)
-	at org.codehaus.janino.Java$ReturnStatement.accept(Java.java:3888)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:1579)
-	at org.codehaus.janino.UnitCompiler.compileStatements(UnitCompiler.java:1665)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:3713)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:3378)
-	at org.codehaus.janino.UnitCompiler.compileDeclaredMethods(UnitCompiler.java:1451)
-	at org.codehaus.janino.UnitCompiler.compileDeclaredMethods(UnitCompiler.java:1424)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:833)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:1030)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:1000)
-	at org.codehaus.janino.UnitCompiler.access$200(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$3.visitAnonymousClassDeclaration(UnitCompiler.java:424)
-	at org.codehaus.janino.UnitCompiler$3.visitAnonymousClassDeclaration(UnitCompiler.java:422)
-	at org.codehaus.janino.Java$AnonymousClassDeclaration.accept(Java.java:1377)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:422)
-	at org.codehaus.janino.UnitCompiler.compileGet2(UnitCompiler.java:5796)
-	at org.codehaus.janino.UnitCompiler.access$9700(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$16.visitNewAnonymousClassInstance(UnitCompiler.java:4827)
-	at org.codehaus.janino.UnitCompiler$16.visitNewAnonymousClassInstance(UnitCompiler.java:4793)
-	at org.codehaus.janino.Java$NewAnonymousClassInstance.accept(Java.java:5635)
-	at org.codehaus.janino.UnitCompiler.compileGet(UnitCompiler.java:4793)
-	at org.codehaus.janino.UnitCompiler.compileGetValue(UnitCompiler.java:5938)
-	at org.codehaus.janino.UnitCompiler.access$3800(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$7.visitRvalue(UnitCompiler.java:2815)
-	at org.codehaus.janino.UnitCompiler$7.visitRvalue(UnitCompiler.java:2803)
-	at org.codehaus.janino.Java$Rvalue.accept(Java.java:4498)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:2803)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:2790)
-	at org.codehaus.janino.UnitCompiler.access$2700(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$6.visitLocalVariableDeclarationStatement(UnitCompiler.java:1593)
-	at org.codehaus.janino.UnitCompiler$6.visitLocalVariableDeclarationStatement(UnitCompiler.java:1579)
-	at org.codehaus.janino.Java$LocalVariableDeclarationStatement.accept(Java.java:3842)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:1579)
-	at org.codehaus.janino.UnitCompiler.compileStatements(UnitCompiler.java:1665)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:3713)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:3378)
-	at org.codehaus.janino.UnitCompiler.compileDeclaredMethods(UnitCompiler.java:1451)
-	at org.codehaus.janino.UnitCompiler.compileDeclaredMethods(UnitCompiler.java:1424)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:833)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:446)
-	at org.codehaus.janino.UnitCompiler.access$400(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$3.visitPackageMemberClassDeclaration(UnitCompiler.java:426)
-	at org.codehaus.janino.UnitCompiler$3.visitPackageMemberClassDeclaration(UnitCompiler.java:422)
-	at org.codehaus.janino.Java$PackageMemberClassDeclaration.accept(Java.java:1688)
-	at org.codehaus.janino.UnitCompiler.compile(UnitCompiler.java:422)
-	at org.codehaus.janino.UnitCompiler.compile2(UnitCompiler.java:396)
-	at org.codehaus.janino.UnitCompiler.access$000(UnitCompiler.java:240)
-	at org.codehaus.janino.UnitCompiler$2.visitCompilationUnit(UnitCompiler.java:367)
-	at org.codehaus.janino.UnitCompiler$2.visitCompilationUnit(UnitCompiler.java:365)
-	at org.codehaus.janino.Java$CompilationUnit.accept(Java.java:371)
-	at org.codehaus.janino.UnitCompiler.compileUnit(UnitCompiler.java:365)
-	at org.codehaus.janino.SimpleCompiler.cook(SimpleCompiler.java:273)
-	at org.codehaus.janino.SimpleCompiler.compileToClassLoader(SimpleCompiler.java:526)
-	at org.codehaus.janino.SimpleCompiler.cook2(SimpleCompiler.java:250)
-	at org.codehaus.janino.SimpleCompiler.cook(SimpleCompiler.java:229)
-	at org.codehaus.janino.SimpleCompiler.cook(SimpleCompiler.java:219)
-	at org.codehaus.commons.compiler.Cookable.cook(Cookable.java:82)
-	at org.codehaus.commons.compiler.Cookable.cook(Cookable.java:77)
-	at org.apache.calcite.adapter.enumerable.EnumerableInterpretable.compileToBindable(EnumerableInterpretable.java:176)
-	at org.apache.calcite.adapter.enumerable.EnumerableInterpretable.getBindable(EnumerableInterpretable.java:170)
-	at org.apache.calcite.adapter.enumerable.EnumerableInterpretable.toBindable(EnumerableInterpretable.java:126)
-	... 11 more
+BUILD SUCCESSFUL in 26s
+2 actionable tasks: 1 executed, 1 up-to-date
+Configuration cache entry reused.
+Stopping Daemon(s)
+1 Daemon stopped
+Running the app!
+	Arg1: ../queries
+	Arg2: ../output
+Table names: [customer, lineitem, nation, orders, part, partsupp, region, supplier, revenue0r15721]
+Loaded 5000 rows from customer
+Loaded 5000 rows from lineitem
+Loaded 50 rows from nation
+Loaded 5000 rows from orders
+Loaded 5000 rows from part
+Loaded 5000 rows from partsupp
+Loaded 10 rows from region
+Loaded 5000 rows from supplier
+Loaded 5000 rows from revenue0r15721
+Table Names in root: [customer, lineitem, nation, orders, part, partsupp, region, revenue0r15721, supplier]
+Optimizing query: capybara3.sql
+prepping statement
+executing statement
+Optimizing query: q4.sql
+prepping statement
+Optimizing query: capybara1.sql
+prepping statement
+Optimizing query: q2.sql
+prepping statement
+executing statement
+Optimizing query: capybara2.sql
+prepping statement
+executing statement
+Optimizing query: q19.sql
+prepping statement
+Optimizing query: q14.sql
+prepping statement
+Optimizing query: q20.sql
+prepping statement
+Optimizing query: q10.sql
+prepping statement
+Optimizing query: q21.sql
+prepping statement
+Optimizing query: q6.sql
+prepping statement
+Optimizing query: q13.sql
+prepping statement
+executing statement
+Optimizing query: q9.sql
+prepping statement
+Optimizing query: q5.sql
+prepping statement
+Optimizing query: q15.sql
+prepping statement
+executing statement
+Optimizing query: q3.sql
+prepping statement
+Optimizing query: q22.sql
+prepping statement
+executing statement
+Optimizing query: q1.sql
+prepping statement
+Optimizing query: q11.sql
+prepping statement
+executing statement
+Optimizing query: q8.sql
+prepping statement
+Optimizing query: q12.sql
+prepping statement
+Optimizing query: q16.sql
+prepping statement
+executing statement
+Optimizing query: aquery.sql
+prepping statement
+executing statement
+Optimizing query: q7.sql
+prepping statement
+Optimizing query: q17.sql
+prepping statement
+executing statement
+Optimizing query: q18.sql
+prepping statement
+Optimizing query: capybara4.sql
+prepping statement
+executing statement
+/home/ubuntu/15799-s25-project1

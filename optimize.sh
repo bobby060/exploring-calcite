@@ -10,10 +10,16 @@ echo -e "\tWorkload: ${WORKLOAD}"
 echo -e "\tOutput Dir: ${OUTPUT_DIR}"
 
 mkdir -p "${OUTPUT_DIR}"
-mkdir -p input/
+mkdir -p input
+
+if [ -f "../data.db" ]; then
+  rm "../data.db"
+fi
+
+
 
 # Extract the workload.
-tar xzf "${WORKLOAD}" --directory input/
+tar xzf "${WORKLOAD}" -C input
 
 cd calcite_app
 
@@ -21,6 +27,10 @@ cd calcite_app
 # init the database
 ../duckdb -init ../input/data/schema.sql -no-stdin ../data.db
 ../duckdb -init ../input/data/load.sql -no-stdin ../data.db
+
+# mkdir csv
+# ../duckdb -init tocsv.sql -no-stdin ../data.db
+
 
 
 # Build and run the Calcite app.

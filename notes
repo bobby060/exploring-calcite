@@ -1,0 +1,75 @@
+        // return new AbstractEnumerable<Object[]>() {
+        // @Override
+        // public Enumerator<Object[]> enumerator() {
+        // return new Enumerator<Object[]>() {
+        // private int index = -1;
+
+        // @Override
+        // public Object[] current() {
+        // System.out.println("Current: " + index);
+        // List<Object> result = new ArrayList<>();
+        // for (int i = 0; i < rowType.getFieldCount(); i++) {
+        // try {
+        // switch (fieldTypes.get(i).getType().getSqlTypeName()) {
+        // case DATE:
+        // result.add(data.getDate(i));
+        // break;
+        // // case VARCHAR:
+        // // result.add(data.getString(i));
+        // // break;
+        // // case DOUBLE:
+        // // result.add(data.getDouble(i));
+        // // break;
+        // // case BOOLEAN:
+        // // result.add(data.getBoolean(i));
+        // // break;
+        // // case BIGINT:
+        // // result.add(data.getLong(i));
+        // // break;
+        // default:
+        // result.add(data.getObject(i));
+        // break;
+        // }
+        // } catch (SQLException e) {
+        // throw new RuntimeException("Error reading data from JDBC table: " +
+        // e.getMessage(), e);
+        // }
+        // }
+        // return result.toArray();
+        // }
+
+        // @Override
+        // public boolean moveNext() {
+        // index++;
+        // boolean result = false;
+
+        // try {
+        // result = data.next();
+        // } catch (SQLException e) {
+        // return false;
+        // }
+        // return result;
+        // }
+
+        // @Override
+        // public void reset() {
+        // try {
+        // data.beforeFirst();
+        // } catch (SQLException e) {
+        // throw new RuntimeException("Error resetting JDBC table: " +
+        // e.getMessage(), e);
+        // }
+        // }
+
+        // @Override
+        // public void close() {
+        // try {
+        // data.close();
+        // } catch (SQLException e) {
+        // throw new RuntimeException("Error closing JDBC table: " +
+        // e.getMessage(), e);
+        // }
+        // }
+        // };
+        // }
+        // };

@@ -12,8 +12,11 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
-
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.plan.volcano.AbstractConverter;
+import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+
+import java.util.ArrayList;
 
 /**
  * ProgramBuilder class for building a HepProgram
@@ -67,7 +70,7 @@ public class ProgramBuilder {
     }
 
     /**
-     * Builds a heuristic optimizer
+     * Builds a heuristic optimizer for things we always want to do.
      */
     protected static RelOptPlanner buildHeuristicOptimizer() {
 
@@ -79,6 +82,12 @@ public class ProgramBuilder {
         // planner.addRelTraitDef(EnumerableConvention.INSTANCE.getTraitDef());
         // planner.addRelTraitDef(this.jdbcConvention.getTraitDef());
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+        for (RelOptRule rule : enumerableRules()) {
+            planner.addRule(rule);
+        }
+
+        planner.addRule(AggregateReduceFunctionsRule.Config.DEFAULT.toRule());
 
         // planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
         // // programBuilder.addRuleCollection(EnumerableRules.ENUMERABLE_RULES);
@@ -94,80 +103,111 @@ public class ProgramBuilder {
 
     }
 
+    /**
+     * List of conversion rules for the enumerable convention
+     * 
+     * @return list of rules
+     */
+    public static ArrayList<RelOptRule> enumerableRules() {
+
+        ArrayList<RelOptRule> rules = new ArrayList<>();
+        rules.add(EnumerableRules.ENUMERABLE_SORT_RULE);
+
+        rules.add(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_FILTER_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        // rules.add(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
+
+        // rules.add(EnumerableRules.ENUMERABLE_ASOFJOIN_RULE);
+
+        rules.add(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+
+        // rules.add(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_CALC_RULE);
+
+        return rules;
+    }
+
+    /**
+     * List of conversion rules used for transformation
+     * 
+     * @return list of rules
+     */
+    public static ArrayList<RelOptRule> coreRules() {
+
+        ArrayList<RelOptRule> rules = new ArrayList<>();
+
+        AggregateReduceFunctionsRule.Config myconfig = AggregateReduceFunctionsRule.Config.DEFAULT;
+
+        myconfig = myconfig.withFunctionsToReduce(AggregateReduceFunctionsRule.Config.DEFAULT_FUNCTIONS_TO_REDUCE);
+
+        rules.add(myconfig.toRule());
+        rules.add(AggregateExpandDistinctAggregatesRule.Config.DEFAULT.toRule());
+
+        // Let sorts get pushed into join, should allow mergejoin
+        rules.add(CoreRules.SORT_JOIN_COPY);
+        rules.add(CoreRules.SORT_PROJECT_TRANSPOSE);
+        rules.add(CoreRules.SORT_JOIN_TRANSPOSE);
+        rules.add(CoreRules.FILTER_CORRELATE);
+        // rules.add(CoreRules.PROJECT_FILTER_VALUES_MERGE);
+        rules.add(CoreRules.PROJECT_FILTER_TRANSPOSE);
+        // rules.add(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+        // planner.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+        rules.add(CoreRules.PROJECT_JOIN_TRANSPOSE);
+        rules.add(CoreRules.FILTER_INTO_JOIN);
+        rules.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
+        rules.add(CoreRules.JOIN_CONDITION_PUSH);
+
+        // rules.add(CoreRules.JOIN_ASSOCIATE);
+        rules.add(CoreRules.JOIN_COMMUTE);
+        rules.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
+        rules.add(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
+
+        rules.add(CoreRules.PROJECT_REMOVE);
+        // rules.add(CoreRules.AGGREGATE_PROJECT_MERGE);
+        rules.add(CoreRules.PROJECT_TO_SEMI_JOIN);
+        rules.add(CoreRules.SEMI_JOIN_FILTER_TRANSPOSE);
+        rules.add(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE);
+        // rules.add(CoreRules.SORT_REMOVE);
+        rules.add(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+        rules.add(CoreRules.SORT_REMOVE_REDUNDANT);
+        rules.add(CoreRules.AGGREGATE_REMOVE);
+        rules.add(CoreRules.PROJECT_REMOVE);
+        // rules.add(CoreRules.FILTER_MERGE);
+
+        rules.add(CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS);
+
+        // rules.add(AggregateReduceFunctionsRule.Config.DEFAULT.toRule());
+
+        // rules.add(AbstractConverter.ExpandConversionRule.INSTANCE);
+
+        return rules;
+    }
+
+    public static void resetPlanner(RelOptPlanner planner) {
+        planner.clear();
+
+        for (RelOptRule rule : enumerableRules()) {
+            planner.addRule(rule);
+        }
+
+        for (RelOptRule rule : coreRules()) {
+            planner.addRule(rule);
+        }
+
+    }
+
     protected static VolcanoPlanner buildVolcanoPlanner() {
         VolcanoPlanner planner = new VolcanoPlanner();
-        planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
 
-        // planner.
-
-        // for (RelOptRule rule : EnumerableRules.ENUMERABLE_RULES) {
-        // // if (rule != EnumerableRules.ENUMERABLE_LIMIT_RULE) { // Rel2sql doesn't
-        // // // support limit
-        // if (rule != EnumerableRules.ENUMERABLE_CORRELATE_RULE && rule !=
-        // EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE) {
-        // planner.addRule(rule);
-        // }
-        // }
-
-        // planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
-
-        planner.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
-        planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
-        // planner.addRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
-        // planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
-
-        planner.addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
-
-        // planner.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS); // Causes
-        // aggregate error
-        // planner.addRule(CoreRules.FILTER_INTO_JOIN);
-        // // planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
-        planner.addRule(CoreRules.PROJECT_FILTER_VALUES_MERGE);
-        planner.addRule(CoreRules.PROJECT_FILTER_TRANSPOSE);
-        planner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-        // planner.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
-        planner.addRule(CoreRules.PROJECT_JOIN_TRANSPOSE);
-        // planner.addRule(CoreRules.FILTER_JOIN_TRANSPOSE);
-
-        planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
-        // planner.addRule(CoreRules.JOIN_ASSOCIATE);
-        planner.addRule(CoreRules.JOIN_COMMUTE);
-        planner.addRule(CoreRules.JOIN_PUSH_EXPRESSIONS);
-        planner.addRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
-        // planner.addRule(CoreRules.JOIN_TO_CORRELATE);
-
-        planner.addRule(CoreRules.PROJECT_REMOVE);
-        planner.addRule(CoreRules.AGGREGATE_PROJECT_MERGE);
-        planner.addRule(CoreRules.PROJECT_TO_SEMI_JOIN);
-        planner.addRule(CoreRules.SORT_REMOVE);
-        planner.addRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
-        planner.addRule(CoreRules.SORT_REMOVE_REDUNDANT);
-        planner.addRule(CoreRules.AGGREGATE_REMOVE);
-        planner.addRule(CoreRules.PROJECT_REMOVE);
-        // // planner.add
-        // planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
-        // planner.addRule(PruneEmptyRules.AGGREGATE_INSTANCE);
-        // planner.addRule(PruneEmptyRules.FILTER_INSTANCE);
-        // planner.addRule(PruneEmptyRules.JOIN_LEFT_INSTANCE);
-        // planner.addRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE);
-        // // planner.addRule(PruneEmptyRules.SORT_INSTANCE);
-        // planner.addRule(PruneEmptyRules.PROJECT_INSTANCE);
-        // planner.addRule(CoreRules.FILTER_SCAN);
+        planner.setTopDownOpt(true);
 
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
         planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-
-        // // Needed to convert logical stuff with sorts?
-        // planner.addRule(CoreRules.SORT_JOIN_TRANSPOSE);
-        // planner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
 
         return planner;
     }

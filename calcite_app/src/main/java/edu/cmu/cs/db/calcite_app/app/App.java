@@ -1,6 +1,9 @@
 package edu.cmu.cs.db.calcite_app.app;
 
 import java.io.File;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 import org.apache.calcite.jdbc.CalciteSchema;
 
 public class App {
@@ -28,15 +31,18 @@ public class App {
 
         // Connect to DuckDB
 
+        Set<String> badQueries = new HashSet<>(
+                Arrays.asList("q16.sql", "q19.sql"));
+
         Optimizer optimizer = new Optimizer(args[0]);
         // Iterate over target queries
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
-            // if (file.getName().endsWith(".sql")) {
-            if (file.getName().equals("aquery.sql")) {
+            if (file.getName().endsWith(".sql")) {
+                // if (file.getName().equals("q2.sql")) {
                 System.out.println("Optimizing query: " + file.getName());
-                String optimizedQuery = optimizer.optimize(file.getPath(), args[1]);
-                System.out.println(optimizedQuery);
+                String optimizedQuery = optimizer.optimize(file.getPath(), args[1],
+                        !badQueries.contains(file.getName()));
             }
         }
     }
