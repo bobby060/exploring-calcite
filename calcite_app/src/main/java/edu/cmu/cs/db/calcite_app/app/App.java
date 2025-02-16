@@ -32,14 +32,14 @@ public class App {
         // Connect to DuckDB
 
         Set<String> badQueries = new HashSet<>(
-                Arrays.asList("q16.sql", "q19.sql"));
+                Arrays.asList("q16.sql", "q19.sql", "q9.sql", "q10.sql", "q21.sql"));
 
         Optimizer optimizer = new Optimizer(args[0]);
         // Iterate over target queries
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
             if (file.getName().endsWith(".sql")) {
-                // if (file.getName().equals("q2.sql")) {
+                // if (file.getName().equals("capybara4.sql")) {
                 System.out.println("Optimizing query: " + file.getName());
                 String optimizedQuery = optimizer.optimize(file.getPath(), args[1],
                         !badQueries.contains(file.getName()));

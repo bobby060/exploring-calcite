@@ -12,8 +12,8 @@ echo -e "\tOutput Dir: ${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p input
 
-if [ -f "../data.db" ]; then
-  rm "../data.db"
+if [ -f "data.db" ]; then
+  rm "data.db"
 fi
 
 

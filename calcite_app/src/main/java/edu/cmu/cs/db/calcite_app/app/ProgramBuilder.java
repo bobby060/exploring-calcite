@@ -15,6 +15,10 @@ import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 
 import java.util.ArrayList;
 
@@ -52,7 +56,8 @@ public class ProgramBuilder {
         // programBuilder.addRuleInstance(CoreRules.FILTER_INTO_JOIN);
 
         programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
-        programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        // programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        // // Adds extra sorts that we don't really want
         programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
         programBuilder.addRuleInstance(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
 
@@ -119,15 +124,21 @@ public class ProgramBuilder {
         rules.add(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
         rules.add(EnumerableRules.ENUMERABLE_PROJECT_RULE);
         rules.add(EnumerableRules.ENUMERABLE_FILTER_RULE);
-        rules.add(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        // rules.add(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         // rules.add(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
-
+        rules.add(EnumerableRules.ENUMERABLE_VALUES_RULE);
         // rules.add(EnumerableRules.ENUMERABLE_ASOFJOIN_RULE);
 
         rules.add(EnumerableRules.ENUMERABLE_LIMIT_RULE);
 
         // rules.add(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
         rules.add(EnumerableRules.ENUMERABLE_CALC_RULE);
+
+        // rules.add(CoreRules.SORT_REMOVE);
+
+        rules.add(AbstractConverter.ExpandConversionRule.INSTANCE);
+
+        //
 
         return rules;
     }
@@ -149,32 +160,42 @@ public class ProgramBuilder {
         rules.add(AggregateExpandDistinctAggregatesRule.Config.DEFAULT.toRule());
 
         // Let sorts get pushed into join, should allow mergejoin
-        rules.add(CoreRules.SORT_JOIN_COPY);
-        rules.add(CoreRules.SORT_PROJECT_TRANSPOSE);
-        rules.add(CoreRules.SORT_JOIN_TRANSPOSE);
+        // rules.add(CoreRules.SORT_JOIN_COPY);
+        // rules.add(CoreRules.SORT_PROJECT_TRANSPOSE);
+
+        // rules.add(CoreRules.JOIN_TO_CORRELATE);
+
+        // rules.add(CoreRules.SORT_JOIN_TRANSPOSE);
         rules.add(CoreRules.FILTER_CORRELATE);
-        // rules.add(CoreRules.PROJECT_FILTER_VALUES_MERGE);
         rules.add(CoreRules.PROJECT_FILTER_TRANSPOSE);
-        // rules.add(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
         // planner.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+
+        // rules.add(CoreRules.JOIN_TO_CORRELATE);
+        // rules.add(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
+
+        // rules.add(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE);
+        // rules.add(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE);
+        // rules.add(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE);
+
         rules.add(CoreRules.PROJECT_JOIN_TRANSPOSE);
         rules.add(CoreRules.FILTER_INTO_JOIN);
         rules.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
         rules.add(CoreRules.JOIN_CONDITION_PUSH);
 
-        // rules.add(CoreRules.JOIN_ASSOCIATE);
+        rules.add(CoreRules.JOIN_ASSOCIATE);
         rules.add(CoreRules.JOIN_COMMUTE);
         rules.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
         rules.add(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
 
         rules.add(CoreRules.PROJECT_REMOVE);
+        rules.add(CoreRules.PROJECT_MERGE);
         // rules.add(CoreRules.AGGREGATE_PROJECT_MERGE);
         rules.add(CoreRules.PROJECT_TO_SEMI_JOIN);
         rules.add(CoreRules.SEMI_JOIN_FILTER_TRANSPOSE);
         rules.add(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE);
         // rules.add(CoreRules.SORT_REMOVE);
-        rules.add(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
-        rules.add(CoreRules.SORT_REMOVE_REDUNDANT);
+        // rules.add(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY);
+        // rules.add(CoreRules.SORT_REMOVE_REDUNDANT);
         rules.add(CoreRules.AGGREGATE_REMOVE);
         rules.add(CoreRules.PROJECT_REMOVE);
         // rules.add(CoreRules.FILTER_MERGE);
@@ -182,8 +203,9 @@ public class ProgramBuilder {
         rules.add(CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS);
 
         // rules.add(AggregateReduceFunctionsRule.Config.DEFAULT.toRule());
+        // RelDecorrelator.Config.
 
-        // rules.add(AbstractConverter.ExpandConversionRule.INSTANCE);
+        // // rules.add(AbstractConverter.ExpandConversionRule.INSTANCE);
 
         return rules;
     }
@@ -198,6 +220,28 @@ public class ProgramBuilder {
         for (RelOptRule rule : coreRules()) {
             planner.addRule(rule);
         }
+
+        // planner.addRule(new
+        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig()
+        // {
+
+        // private RelDecorrelator decorrelator;
+        // private OperandSupplier operandSupplier;
+
+        // @Override
+        // public
+        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig
+        // withDecorrelator(RelDecorrelator decorrelator) {
+        // this.decorrelator = decorrelator;
+        // return this;
+        // }
+
+        // @Override
+        // public RelDecorrelator decorrelator() {
+        // return this.decorrelator;
+        // }
+
+        // }.toRule());
 
     }
 

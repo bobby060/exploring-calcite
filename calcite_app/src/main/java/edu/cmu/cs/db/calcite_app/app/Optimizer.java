@@ -114,27 +114,35 @@ public class Optimizer {
         RelRoot relRoot = context.sql2relConverter.convertQuery(validatedNode, false, true);
         RelNode originalPlan = relRoot.rel;
 
-        context.planner.setRoot(originalPlan);
+        RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(originalPlan,
+                RelBuilder.create(context.frameworkConfig));
 
-        RelNode planWithTrait = context.planner.changeTraits(originalPlan,
+        // System.out.println("decorrelatedNode: " + decorrelatedNode.explain());
+
+        context.planner.setRoot(decorrelatedNode);
+
+        RelNode planWithTrait = context.planner.changeTraits(decorrelatedNode,
                 context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
+
+        // ProgramBuilder.resetPlanner(context.planner);
 
         context.planner.setRoot(planWithTrait);
 
         // Step 4: Optimize with default planner
+        long start = System.currentTimeMillis();
         RelNode bestExp = context.planner.findBestExp();
+        long end = System.currentTimeMillis();
+        System.out.println("Optimization time: " + (end - start) + "ms");
 
         // Step 5: save plans
 
         // Decorrelate bc of bugs in calcite
-        RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(bestExp.stripped(),
-                RelBuilder.create(context.frameworkConfig));
 
         // Convert to logical also bc of bugs in calcite
         ToLogicalConverter toLogicalConverter = new ToLogicalConverter(
                 RelBuilder.create(context.frameworkConfig));
 
-        RelNode logicalNode = toLogicalConverter.visit(decorrelatedNode.stripped());
+        RelNode logicalNode = toLogicalConverter.visit(bestExp.stripped());
 
         // But save logical version to sql
         SqlNode optimizedSqlNode = this.context.rel2sqlConverter
@@ -152,34 +160,41 @@ public class Optimizer {
                 new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.sql").toPath(),
                 final_sql);
 
-        System.out.println("prepping statement");
-
-        for (RelOptRule rule : ProgramBuilder.coreRules()) {
-            context.planner.removeRule(rule);
-        }
-
         if (execute) {
+
+            System.out.println("prepping statement");
+
+            ProgramBuilder.resetPlanner(context.planner);
+
+            // Reoptimize for execution
+
+            start = System.currentTimeMillis();
+            context.planner.setRoot(planWithTrait);
+
+            RelRunner runner = context.connection.unwrap(RelRunner.class);
+
+            PreparedStatement statement = runner.prepareStatement(planWithTrait);
+
             try {
-
-                // Reoptimize for execution
-                context.planner.setRoot(planWithTrait);
-
-                RelRunner runner = context.connection.unwrap(RelRunner.class);
-
-                PreparedStatement statement = runner.prepareStatement(planWithTrait);
-
                 System.out.println("executing statement");
 
                 ResultSet resultSet = statement.executeQuery();
 
-                SerializeResultSet(resultSet, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) +
+                SerializeResultSet(resultSet, new File(out_path + '/' + fileName.substring(0,
+                        fileName.length() - 4) +
                         "_results.csv"));
+
+                end = System.currentTimeMillis();
+                System.out.println("Time taken in calcite: " + (end - start) + "ms");
 
             } catch (SQLException e) {
                 System.out.println("Error executing statement: " + e.getMessage());
-                Files.writeString(new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) +
-                        "_results.csv").toPath(), e.getMessage());
+                Files.writeString(new File(out_path + '/' + fileName.substring(0,
+                        fileName.length() - 4) +
+                        "_results.csv").toPath(), e.getStackTrace().toString());
             }
+        } else {
+            System.out.println("Skipping execution, on blacklist");
         }
 
         return final_sql;

@@ -1,0 +1,102 @@
+with corrrelate subquery
+
+Invoking optimize.sh.
+	Workload: workload_small.tgz
+	Output Dir: output
+Starting a Gradle Daemon, 10 stopped Daemons could not be reused, use --status for details
+Reusing configuration cache.
+> Task :processResources NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :compileJava
+> Task :classes
+> Task :compileTestJava NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :jar
+> Task :assemble
+> Task :build
+
+BUILD SUCCESSFUL in 27s
+2 actionable tasks: 2 executed
+Configuration cache entry reused.
+Reusing configuration cache.
+> Task :processResources NO-SOURCE
+> Task :compileJava UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :shadowJar
+
+BUILD SUCCESSFUL in 1m 2s
+2 actionable tasks: 1 executed, 1 up-to-date
+Configuration cache entry reused.
+Stopping Daemon(s)
+1 Daemon stopped
+Running the app!
+	Arg1: ../input/queries
+	Arg2: ../output
+Table names: [customer, lineitem, nation, orders, part, partsupp, region, supplier, revenue0r15721]
+Loaded 75000 rows from customer
+Loaded 2999671 rows from lineitem
+Loaded 25 rows from nation
+Loaded 750000 rows from orders
+Loaded 100000 rows from part
+Loaded 400000 rows from partsupp
+Loaded 5 rows from region
+Loaded 5000 rows from supplier
+Loaded 5000 rows from revenue0r15721
+Table Names in root: [customer, lineitem, nation, orders, part, partsupp, region, revenue0r15721, supplier]
+Optimizing query: capybara3.sql
+Optimization time: 1437ms
+prepping statement
+executing statement
+Time taken in calcite: 21754ms
+Optimizing query: q4.sql
+Optimization time: 329ms
+prepping statement
+executing statement
+Error executing statement: exception while executing query: Cannot convert 1996-01-02 to int
+Optimizing query: capybara1.sql
+Optimization time: 73ms
+prepping statement
+executing statement
+Time taken in calcite: 227ms
+Optimizing query: q2.sql
+Optimization time: 57838ms
+prepping statement
+executing statement
+Time taken in calcite: 5763ms
+Optimizing query: capybara2.sql
+Optimization time: 158ms
+prepping statement
+executing statement
+Time taken in calcite: 19676ms
+Optimizing query: q19.sql
+Optimization time: 720ms
+Skipping execution, on blacklist
+Optimizing query: q14.sql
+Optimization time: 227ms
+prepping statement
+executing statement
+Error executing statement: exception while executing query: Cannot convert 1996-03-13 to int
+Optimizing query: q20.sql
+Optimization time: 4813ms
+prepping statement
+executing statement
+Error executing statement: exception while executing query: Cannot convert 1996-03-13 to int
+Optimizing query: q10.sql
+Optimization time: 1020ms
+Skipping execution, on blacklist
+Optimizing query: q21.sql
+Optimization time: 1123ms
+Skipping execution, on blacklist
+Optimizing query: q6.sql
+Optimization time: 1ms
+prepping statement
+executing statement
+Error executing statement: exception while executing query: Cannot convert 1996-03-13 to int
+Optimizing query: q13.sql
+Optimization time: 4ms
+prepping statement
+executing statement
+Time taken in calcite: 8960ms
+Optimizing query: q9.sql

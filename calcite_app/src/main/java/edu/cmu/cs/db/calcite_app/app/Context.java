@@ -150,6 +150,7 @@ public class Context {
 
         this.frameworkConfig = Frameworks.newConfigBuilder()
                 .parserConfig(SqlParser.config().withCaseSensitive(false))
+                .defaultSchema(rootSchema)
                 .build();
 
         this.validator = validator;
