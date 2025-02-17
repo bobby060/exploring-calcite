@@ -22,24 +22,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 
-// import org.apache.parquet.hadoop.ParquetFileReader;
-// import org.apache.parquet.hadoop.ParquetReader;
-// import org.apache.parquet.hadoop.api.ReadSupport;
-// import org.apache.parquet.hadoop.example.GroupReadSupport;
-// import org.apache.parquet.avro.AvroParquetReader;
-// import org.apache.parquet.avro.AvroParquetReader.Builder;
-// import org.apache.parquet.column.page.PageReadStore;
-// import org.apache.parquet.example.data.Group;
-// import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
-// import org.apache.parquet.format.converter.ParquetMetadataConverter;
-// import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-// import org.apache.parquet.io.ColumnIOFactory;
-// import org.apache.parquet.io.MessageColumnIO;
-// import org.apache.parquet.schema.MessageType;
-// import org.apache.parquet.io.RecordReader;
-
-// import org.apache.avro.generic.GenericRecord;
-// import org.apache.avro.reflect.ReflectData;
 import org.apache.calcite.linq4j.Linq4j;
 
 public class CustomTable extends AbstractTable implements ScannableTable {
@@ -50,7 +32,7 @@ public class CustomTable extends AbstractTable implements ScannableTable {
 
     private final Statistic statistic;
 
-    CustomTable(RelDataType rowType, ArrayList data, Statistic statistic) {
+    private CustomTable(RelDataType rowType, ArrayList data, Statistic statistic) {
         this.rowType = rowType;
         this.data = data;
         this.statistic = statistic;
@@ -73,6 +55,7 @@ public class CustomTable extends AbstractTable implements ScannableTable {
         return rowType;
     }
 
+    // Only way to build a table
     public static CustomTable fromJdbcTable(Table jdbcTable, String tableName,
             DataSource dataSource,
             RelDataTypeFactory typeFactory) {
@@ -220,50 +203,5 @@ public class CustomTable extends AbstractTable implements ScannableTable {
             return this.enumerator;
         }
     };
-    // // https://www.jofre.de/?p=1459
-    // private static List<Object[]> fromParquetFile(String parquetPath,
-    // RelDataTypeFactory typeFactory) {
 
-    // List<Object[]> data = new ArrayList<>();
-
-    // try {
-
-    // Path path = new Path(parquetPath);
-
-    // Configuration conf = new Configuration();
-
-    // ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, path,
-    // ParquetMetadataConverter.NO_FILTER);
-    // MessageType schema = readFooter.getFileMetaData().getSchema();
-    // ParquetFileReader r = new ParquetFileReader(conf, path, readFooter);
-
-    // // builder(path)
-    // // .withDataModel(new ReflectData(Row.class.getClassLoader()))
-    // // .withConf(conf)
-    // // .build();
-
-    // PageReadStore pages = null;
-    // try {
-    // while (null != (pages = r.readNextRowGroup())) {
-    // final long rows = pages.getRowCount();
-    // System.out.println("Number of rows: " + rows);
-
-    // final MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-    // final RecordReader recordReader = columnIO.getRecordReader(pages, new
-    // GroupRecordConverter(schema));
-    // for (int i = 0; i < rows; i++) {
-    // final Group g = recordReader.read().;
-    // // data.add(g.().toArray());
-    // // TODO Compare to System.out.println(g);
-    // }
-    // }
-    // } finally {
-    // r.close();
-    // }
-    // } catch (Exception e) {
-    // throw new RuntimeException("Error reading Parquet file: " + e.getMessage(),
-    // e);
-    // }
-    // return null;
-    // }
 }

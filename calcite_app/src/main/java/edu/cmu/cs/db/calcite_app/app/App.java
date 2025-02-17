@@ -4,42 +4,32 @@ import java.io.File;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Arrays;
-import org.apache.calcite.jdbc.CalciteSchema;
 
 public class App {
 
     public static void main(String[] args) throws Exception {
-        if (args.length == 0) {
-            System.out.println("Usage: java -jar App.jar <arg1> <arg2>");
+        if (args.length != 2) {
+            System.out.println("Usage: java -jar App.jar <query input directory> <output directory>");
             return;
         }
 
-        // Feel free to modify this to take as many or as few arguments as you want.
         System.out.println("Running the app!");
         String arg1 = args[0];
-        System.out.println("\tArg1: " + arg1);
+        System.out.println("\tInput dir: " + arg1);
         String arg2 = args[1];
-        System.out.println("\tArg2: " + arg2);
+        System.out.println("\tOutput dir: " + arg2);
 
-        // Note: in practice, you would probably use
-        // org.apache.calcite.tools.Frameworks.
-        // That package provides simple defaults that make it easier to configure
-        // Calcite.
-        // But there's a lot of magic happening there; since this is an educational
-        // project,
-        // we guide you towards the explicit method in the writeup.
-
-        // Connect to DuckDB
-
+        // Queries we skip in test set, for whatever reason, but usally bc they cause
+        // time outs and we dont have to optimize them
         Set<String> badQueries = new HashSet<>(
-                Arrays.asList("q16.sql", "q19.sql", "q9.sql", "q10.sql", "q21.sql"));
+                Arrays.asList("q19.sql", "q9.sql", "q10.sql", "q21.sql"));
 
         Optimizer optimizer = new Optimizer(args[0]);
         // Iterate over target queries
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
             if (file.getName().endsWith(".sql")) {
-                // if (file.getName().equals("capybara4.sql")) {
+                // if (file.getName().equals("q18.sql")) {
                 System.out.println("Optimizing query: " + file.getName());
                 String optimizedQuery = optimizer.optimize(file.getPath(), args[1],
                         !badQueries.contains(file.getName()));

@@ -1,5 +1,5 @@
-Note: /home/ubuntu/15799-s25-project1/calcite_app/src/main/java/edu/cmu/cs/db/calcite_app/app/CustomTable.java uses unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
+-- Loading resources from ../input/data/schema.sql
+-- Loading resources from ../input/data/load.sql
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
@@ -8,3 +8,4 @@ Note: Recompile with -Xlint:unchecked for details.
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
 [main] INFO org.apache.calcite.adapter.jdbc.JdbcSchema - Unknown table type: BASE_TABLE
+./optimize.sh: line 47:  8848 Killed                  java -Xmx4096m -jar -Dlog4j.logger.org.apache.calcite.plan.RelOptPlanner=TRACE -Dlog4j.configuration="log4j.properties" -Dorg.slf4j.simpleLogger.defaultLogLevel=info build/libs/calcite_app-1.0-SNAPSHOT-all.jar "../input/queries" "../${OUTPUT_DIR}"

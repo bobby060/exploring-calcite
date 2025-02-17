@@ -25,8 +25,6 @@ import org.apache.calcite.rel.logical.ToLogicalConverter;
 
 import org.apache.calcite.plan.RelOptListener;
 
-import org.apache.calcite.plan.RelOptRule;
-
 public class Optimizer {
     private Context context;
 
@@ -54,7 +52,7 @@ public class Optimizer {
 
         // Reinitalize planner - must do before each optimization otherwise it doesn't
         // actually optimize
-        ProgramBuilder.resetPlanner(context.planner);
+        Context.reset(context, false);
 
         // Step 1: Use SqlParser to convert SQL string to SQLNode
         SqlNode sqlNode;
@@ -67,6 +65,8 @@ public class Optimizer {
 
         // Step 2: Use SQL validator to validate tree
         SqlNode validatedNode = context.validator.validate(sqlNode);
+
+        // TODO make our own statistics counter for what rules applied
 
         RelOptListener listener = new RelOptListener() {
             @Override
@@ -114,14 +114,11 @@ public class Optimizer {
         RelRoot relRoot = context.sql2relConverter.convertQuery(validatedNode, false, true);
         RelNode originalPlan = relRoot.rel;
 
-        RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(originalPlan,
-                RelBuilder.create(context.frameworkConfig));
-
         // System.out.println("decorrelatedNode: " + decorrelatedNode.explain());
 
-        context.planner.setRoot(decorrelatedNode);
+        context.planner.setRoot(originalPlan);
 
-        RelNode planWithTrait = context.planner.changeTraits(decorrelatedNode,
+        RelNode planWithTrait = context.planner.changeTraits(originalPlan,
                 context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
 
         // ProgramBuilder.resetPlanner(context.planner);
@@ -130,6 +127,9 @@ public class Optimizer {
 
         // Step 4: Optimize with default planner
         long start = System.currentTimeMillis();
+
+        // context.planner.addListener(RelOptListener.)
+
         RelNode bestExp = context.planner.findBestExp();
         long end = System.currentTimeMillis();
         System.out.println("Optimization time: " + (end - start) + "ms");
@@ -144,9 +144,12 @@ public class Optimizer {
 
         RelNode logicalNode = toLogicalConverter.visit(bestExp.stripped());
 
+        RelNode decorrelatedOutput = RelDecorrelator.decorrelateQuery(logicalNode,
+                RelBuilder.create(context.frameworkConfig));
+
         // But save logical version to sql
         SqlNode optimizedSqlNode = this.context.rel2sqlConverter
-                .visitRoot(logicalNode)
+                .visitRoot(decorrelatedOutput)
                 .asStatement();
 
         String final_sql = optimizedSqlNode.toSqlString(RedshiftSqlDialect.DEFAULT).getSql();
@@ -164,16 +167,40 @@ public class Optimizer {
 
             System.out.println("prepping statement");
 
-            ProgramBuilder.resetPlanner(context.planner);
+            Context.reset(context, true);
+
+            // Convert SQL to Rel
+            RelRoot relRoot2 = context.sql2relConverter.convertQuery(validatedNode, false, true);
+            RelNode originalPlan2 = relRoot2.rel;
+
+            // System.out.println("decorrelatedNode: " + decorrelatedNode.explain());
+
+            context.planner.setRoot(originalPlan2);
+
+            RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(originalPlan2,
+                    RelBuilder.create(context.frameworkConfig));
+
+            RelNode planWithTrait2 = context.planner.changeTraits(decorrelatedNode,
+                    context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
 
             // Reoptimize for execution
 
             start = System.currentTimeMillis();
-            context.planner.setRoot(planWithTrait);
+            context.planner.setRoot(planWithTrait2);
 
             RelRunner runner = context.connection.unwrap(RelRunner.class);
 
-            PreparedStatement statement = runner.prepareStatement(planWithTrait);
+            // context.planner.addListener(listener);
+
+            PreparedStatement statement = runner.prepareStatement(planWithTrait2);
+
+            // System.out.println("Plan being used for relrunner: ");
+
+            // System.out.println(RelOptUtil.dumpPlan("", context.planner.findBestExp(),
+            // SqlExplainFormat.TEXT,
+            // SqlExplainLevel.ALL_ATTRIBUTES));
+
+            // System.out.println("statement: " + );
 
             try {
                 System.out.println("executing statement");
@@ -191,11 +218,17 @@ public class Optimizer {
                 System.out.println("Error executing statement: " + e.getMessage());
                 Files.writeString(new File(out_path + '/' + fileName.substring(0,
                         fileName.length() - 4) +
-                        "_results.csv").toPath(), e.getStackTrace().toString());
+                        "_results.csv").toPath(), e.getMessage());
             }
         } else {
             System.out.println("Skipping execution, on blacklist");
         }
+
+        // System.out.println("final_sql: " + final_sql);
+
+        // String validatedSql = SubQueryValidator.validate(final_sql);
+
+        // System.out.println("validatedSql: " + validatedSql);
 
         return final_sql;
     }
@@ -211,7 +244,7 @@ public class Optimizer {
         StringBuilder resultSetString = new StringBuilder();
         for (int i = 1; i <= columnCount; i++) {
             if (i > 1) {
-                resultSetString.append(", ");
+                resultSetString.append(",");
             }
             resultSetString.append(metaData.getColumnName(i));
         }
@@ -219,9 +252,15 @@ public class Optimizer {
         while (resultSet.next()) {
             for (int i = 1; i <= columnCount; i++) {
                 if (i > 1) {
-                    resultSetString.append(", ");
+                    resultSetString.append(",");
                 }
-                resultSetString.append(resultSet.getString(i));
+                String s = resultSet.getString(i);
+                s = s.replace("\n", "\\n");
+                s = s.replace("\r", "\\r");
+                s = s.replace("\"", "\"\"");
+                resultSetString.append("\"");
+                resultSetString.append(s);
+                resultSetString.append("\"");
             }
             resultSetString.append("\n");
         }

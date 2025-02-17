@@ -14,4 +14,5 @@ public class CustomStatistic implements Statistic {
     public Double getRowCount() {
         return rowCount;
     }
+
 }

@@ -20,6 +20,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -33,6 +34,9 @@ import java.sql.DriverManager;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.jdbc.CalciteConnection;
+
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.rules.CoreRules;
 
 /**
  * /**
@@ -150,13 +154,52 @@ public class Context {
 
         this.frameworkConfig = Frameworks.newConfigBuilder()
                 .parserConfig(SqlParser.config().withCaseSensitive(false))
-                .defaultSchema(rootSchema)
+                // .defaultSchema(rootSchema)
                 .build();
 
         this.validator = validator;
         this.rootSchema = CalciteSchema.from(rootSchema);
 
         this.jdbcConvention = JdbcConvention.of(RedshiftSqlDialect.DEFAULT, null, "1");
+
+    }
+
+    public static void reset(Context context, boolean isRelRunnner) {
+        context.planner.clear();
+
+        for (RelOptRule rule : ProgramBuilder.enumerableRules()) {
+            context.planner.addRule(rule);
+        }
+
+        if (isRelRunnner) {
+            context.planner.addRule(CoreRules.PROJECT_TO_SEMI_JOIN);
+        }
+
+        for (RelOptRule rule : ProgramBuilder.coreRules()) {
+            context.planner.addRule(rule);
+        }
+
+        // planner.addRule(new
+        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig()
+        // {
+
+        // private RelDecorrelator decorrelator;
+        // private OperandSupplier operandSupplier;
+
+        // @Override
+        // public
+        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig
+        // withDecorrelator(RelDecorrelator decorrelator) {
+        // this.decorrelator = decorrelator;
+        // return this;
+        // }
+
+        // @Override
+        // public RelDecorrelator decorrelator() {
+        // return this.decorrelator;
+        // }
+
+        // }.toRule());
 
     }
 }

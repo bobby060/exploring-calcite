@@ -26,6 +26,11 @@ replay_pid*
 submission.zip
 input/
 output/
+output4/
+output3/
+
+log*
+
 data/
 duckdb
 *.db
