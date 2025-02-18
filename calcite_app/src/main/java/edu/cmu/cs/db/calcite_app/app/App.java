@@ -24,14 +24,15 @@ public class App {
         Set<String> badQueries = new HashSet<>(
                 Arrays.asList("q19.sql", "q9.sql", "q10.sql", "q21.sql"));
 
-        Optimizer optimizer = new Optimizer(args[0]);
+        // TODO: add path as a cmd line arg
+        Optimizer optimizer = new Optimizer("../data.db");
         // Iterate over target queries
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
             if (file.getName().endsWith(".sql")) {
                 // if (file.getName().equals("q18.sql")) {
                 System.out.println("Optimizing query: " + file.getName());
-                String optimizedQuery = optimizer.optimize(file.getPath(), args[1],
+                optimizer.optimize(file.getPath(), args[1],
                         !badQueries.contains(file.getName()));
             }
         }

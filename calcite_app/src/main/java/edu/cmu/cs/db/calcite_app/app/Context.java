@@ -7,7 +7,6 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -20,7 +19,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -32,15 +30,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
-import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.jdbc.CalciteConnection;
-
-import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.rel.rules.CoreRules;
 
 /**
- * /**
- * Context class for the optimizer
+ * Maintains all the weird calcite objects so we can access them.
  */
 public class Context {
     SqlParser parser;
@@ -90,7 +82,7 @@ public class Context {
         // CalciteSchema childSchema = CustomSchema.fromDuckDb(inputPath);
 
         // rootSchema.add("duckdb", childSchema.schema);
-        CustomSchema.addTables(rootSchema, inputPath);
+        CustomTable.addTables(rootSchema, inputPath);
 
         System.out.println("Table Names in root: " + rootSchema.getTableNames());
 
@@ -124,10 +116,6 @@ public class Context {
         RelOptPlanner planner = ProgramBuilder.buildVolcanoPlanner();
 
         RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-
-        this.hepPlanner = ProgramBuilder.buildHeuristicOptimizer();
-
-        this.hepCluster = RelOptCluster.create(hepPlanner, rexBuilder);
 
         this.cluster = cluster;
         this.planner = planner;
@@ -164,42 +152,4 @@ public class Context {
 
     }
 
-    public static void reset(Context context, boolean isRelRunnner) {
-        context.planner.clear();
-
-        for (RelOptRule rule : ProgramBuilder.enumerableRules()) {
-            context.planner.addRule(rule);
-        }
-
-        if (isRelRunnner) {
-            context.planner.addRule(CoreRules.PROJECT_TO_SEMI_JOIN);
-        }
-
-        for (RelOptRule rule : ProgramBuilder.coreRules()) {
-            context.planner.addRule(rule);
-        }
-
-        // planner.addRule(new
-        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig()
-        // {
-
-        // private RelDecorrelator decorrelator;
-        // private OperandSupplier operandSupplier;
-
-        // @Override
-        // public
-        // RelDecorrelator.RemoveCorrelationForScalarAggregateRule.RemoveCorrelationForScalarAggregateRuleConfig
-        // withDecorrelator(RelDecorrelator decorrelator) {
-        // this.decorrelator = decorrelator;
-        // return this;
-        // }
-
-        // @Override
-        // public RelDecorrelator decorrelator() {
-        // return this.decorrelator;
-        // }
-
-        // }.toRule());
-
-    }
 }

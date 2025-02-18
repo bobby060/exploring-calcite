@@ -25,10 +25,10 @@ replay_pid*
 
 submission.zip
 input/
-output/
-output4/
-output3/
 
+# Debug records
+output/
+output*
 log*
 
 data/

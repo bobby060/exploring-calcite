@@ -29,9 +29,9 @@ public class Optimizer {
     private Context context;
 
     /**
-     * Initializes the optimizer with the given root schema
+     * Initializes the optimizer with data from the input path
      * 
-     * @param rootSchema
+     * @param inputPath path to data
      */
     public Optimizer(String inputPath) throws Exception {
         this.context = new Context(inputPath);
@@ -41,18 +41,18 @@ public class Optimizer {
      * Optimizes the given SQL query
      * 
      * @param filepath
-     * @param out_path
+     * @param outPath
      * @return
      * @throws Exception
      */
-    public String optimize(String filepath, String out_path, boolean execute) throws Exception {
+    public void optimize(String filepath, String outPath, boolean execute) throws Exception {
 
         String fileName = filepath.substring(filepath.lastIndexOf("/") + 1);
         String originalSql = Files.readString(new File(filepath).toPath());
 
         // Reinitalize planner - must do before each optimization otherwise it doesn't
         // actually optimize
-        Context.reset(context, false);
+        ProgramBuilder.resetPlanner(context.planner, false);
 
         // Step 1: Use SqlParser to convert SQL string to SQLNode
         SqlNode sqlNode;
@@ -66,69 +66,21 @@ public class Optimizer {
         // Step 2: Use SQL validator to validate tree
         SqlNode validatedNode = context.validator.validate(sqlNode);
 
-        // TODO make our own statistics counter for what rules applied
-
-        RelOptListener listener = new RelOptListener() {
-            @Override
-            public void relEquivalenceFound(RelEquivalenceEvent event) {
-                // System.out
-                // .println(
-                // "relEquivalenceFound: " + (event.getRel() != null ? event.getRel().explain()
-                // : "null"));
-            }
-
-            @Override
-            public void relDiscarded(RelDiscardedEvent event) {
-                System.out.println("relDiscarded: ");
-            }
-
-            @Override
-            public void ruleAttempted(RuleAttemptedEvent event) {
-                // System.out.println("ruleAttempted: " +
-                // event.getRuleCall().getRule().getClass().getSimpleName());
-            }
-
-            @Override
-            public void ruleProductionSucceeded(RuleProductionEvent event) {
-                System.out.println(
-                        "ruleProductionSucceeded: " + event.getRuleCall().getRule().getClass().getSimpleName());
-                System.out.println(
-                        "transformed to : " + (event.getRel() != null ? event.getRel().explain() : "null"));
-                System.out.println(
-                        "from: " + (event.getRuleCall().rels[0] != null ? event.getRuleCall().rels[0].explain()
-                                : "null"));
-            }
-
-            @Override
-            public void relChosen(RelChosenEvent event) {
-                // System.out.println("relChosen: " + (event.getRel() != null ?
-                // event.getRel().explain() : "null"));
-            }
-        };
-
         // context.planner.addListener(listener);
 
         // Step 3: convert to relnode and add trait
-
-        // Convert SQL to Rel
         RelRoot relRoot = context.sql2relConverter.convertQuery(validatedNode, false, true);
         RelNode originalPlan = relRoot.rel;
-
-        // System.out.println("decorrelatedNode: " + decorrelatedNode.explain());
 
         context.planner.setRoot(originalPlan);
 
         RelNode planWithTrait = context.planner.changeTraits(originalPlan,
                 context.cluster.traitSet().replace(EnumerableConvention.INSTANCE));
 
-        // ProgramBuilder.resetPlanner(context.planner);
-
         context.planner.setRoot(planWithTrait);
 
         // Step 4: Optimize with default planner
         long start = System.currentTimeMillis();
-
-        // context.planner.addListener(RelOptListener.)
 
         RelNode bestExp = context.planner.findBestExp();
         long end = System.currentTimeMillis();
@@ -136,47 +88,49 @@ public class Optimizer {
 
         // Step 5: save plans
 
-        // Decorrelate bc of bugs in calcite
-
         // Convert to logical also bc of bugs in calcite
         ToLogicalConverter toLogicalConverter = new ToLogicalConverter(
                 RelBuilder.create(context.frameworkConfig));
 
         RelNode logicalNode = toLogicalConverter.visit(bestExp.stripped());
 
+        // Decorrelate bc of bugs in calcite
         RelNode decorrelatedOutput = RelDecorrelator.decorrelateQuery(logicalNode,
                 RelBuilder.create(context.frameworkConfig));
 
-        // But save logical version to sql
+        // Save logical version to sql
         SqlNode optimizedSqlNode = this.context.rel2sqlConverter
                 .visitRoot(decorrelatedOutput)
                 .asStatement();
 
-        String final_sql = optimizedSqlNode.toSqlString(RedshiftSqlDialect.DEFAULT).getSql();
+        String finalSql = optimizedSqlNode.toSqlString(RedshiftSqlDialect.DEFAULT).getSql();
 
         // Write the original SQL, original plan, optimized plan, and optimized SQL to
-        Files.writeString(new File(out_path + "/" + fileName).toPath(), originalSql);
-        SerializePlan(originalPlan, new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + ".txt"));
+        Files.writeString(new File(outPath + "/" + fileName).toPath(), originalSql);
+        SerializePlan(originalPlan, new File(outPath + '/' + fileName.substring(0, fileName.length() - 4) + ".txt"));
         SerializePlan(bestExp.stripped(),
-                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.txt"));
+                new File(outPath + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.txt"));
         Files.writeString(
-                new File(out_path + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.sql").toPath(),
-                final_sql);
+                new File(outPath + '/' + fileName.substring(0, fileName.length() - 4) + "_optimized.sql").toPath(),
+                finalSql);
 
+        // Execute if not one of the blacklisted queries
         if (execute) {
 
             System.out.println("prepping statement");
 
-            Context.reset(context, true);
+            // Reset planner. The planner maintains some internal state that causes problems
+            // if we try to reoptimize the same node
+            ProgramBuilder.resetPlanner(context.planner, true);
 
-            // Convert SQL to Rel
+            // To avoid any carryover from previous optimizations, convert from SQL again
             RelRoot relRoot2 = context.sql2relConverter.convertQuery(validatedNode, false, true);
             RelNode originalPlan2 = relRoot2.rel;
 
-            // System.out.println("decorrelatedNode: " + decorrelatedNode.explain());
-
             context.planner.setRoot(originalPlan2);
 
+            // For running inside calcite, we get better performance if we optimize the
+            // decorrelated query (but not in duckdb, which is weird)
             RelNode decorrelatedNode = RelDecorrelator.decorrelateQuery(originalPlan2,
                     RelBuilder.create(context.frameworkConfig));
 
@@ -190,24 +144,15 @@ public class Optimizer {
 
             RelRunner runner = context.connection.unwrap(RelRunner.class);
 
-            // context.planner.addListener(listener);
-
+            // Optimization happens again while statement is prepared
             PreparedStatement statement = runner.prepareStatement(planWithTrait2);
-
-            // System.out.println("Plan being used for relrunner: ");
-
-            // System.out.println(RelOptUtil.dumpPlan("", context.planner.findBestExp(),
-            // SqlExplainFormat.TEXT,
-            // SqlExplainLevel.ALL_ATTRIBUTES));
-
-            // System.out.println("statement: " + );
 
             try {
                 System.out.println("executing statement");
 
                 ResultSet resultSet = statement.executeQuery();
 
-                SerializeResultSet(resultSet, new File(out_path + '/' + fileName.substring(0,
+                SerializeResultSet(resultSet, new File(outPath + '/' + fileName.substring(0,
                         fileName.length() - 4) +
                         "_results.csv"));
 
@@ -216,7 +161,7 @@ public class Optimizer {
 
             } catch (SQLException e) {
                 System.out.println("Error executing statement: " + e.getMessage());
-                Files.writeString(new File(out_path + '/' + fileName.substring(0,
+                Files.writeString(new File(outPath + '/' + fileName.substring(0,
                         fileName.length() - 4) +
                         "_results.csv").toPath(), e.getMessage());
             }
@@ -224,20 +169,29 @@ public class Optimizer {
             System.out.println("Skipping execution, on blacklist");
         }
 
-        // System.out.println("final_sql: " + final_sql);
-
-        // String validatedSql = SubQueryValidator.validate(final_sql);
-
-        // System.out.println("validatedSql: " + validatedSql);
-
-        return final_sql;
+        return;
     }
 
+    /**
+     * Serializes the plan to a file
+     * 
+     * @param relNode
+     * @param outputPath
+     * @throws IOException
+     */
     private static void SerializePlan(RelNode relNode, File outputPath) throws IOException {
         Files.writeString(outputPath.toPath(),
                 RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT, SqlExplainLevel.ALL_ATTRIBUTES));
     }
 
+    /**
+     * Serializes the result set to a file
+     * 
+     * @param resultSet
+     * @param outputPath
+     * @throws SQLException
+     * @throws IOException
+     */
     private static void SerializeResultSet(ResultSet resultSet, File outputPath) throws SQLException, IOException {
         ResultSetMetaData metaData = resultSet.getMetaData();
         int columnCount = metaData.getColumnCount();

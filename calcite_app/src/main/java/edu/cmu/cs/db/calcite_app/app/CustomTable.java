@@ -13,26 +13,37 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
-
 import org.apache.calcite.linq4j.Linq4j;
 
+/**
+ * Custom table class for our in-memory tables
+ * 
+ * Allows for loading data from a JDBC table into memory and using table with
+ * Enumerable RelRunner
+ * 
+ * 
+ */
 public class CustomTable extends AbstractTable implements ScannableTable {
-    private static final int BATCH_SIZE = 1000;
+    private static final int BATCH_SIZE = 5000; // batch size for loading data from jdbc
     private final RelDataType rowType;
     private final ArrayList<Object[]> data;
     private final List<RelDataTypeField> fieldTypes;
 
     private final Statistic statistic;
 
-    private CustomTable(RelDataType rowType, ArrayList data, Statistic statistic) {
+    private CustomTable(RelDataType rowType, ArrayList<Object[]> data, Statistic statistic) {
         this.rowType = rowType;
         this.data = data;
         this.statistic = statistic;
@@ -69,9 +80,10 @@ public class CustomTable extends AbstractTable implements ScannableTable {
                 Statement stmt = conn.createStatement()) {
 
             // Set fetch size for batch loading
-            stmt.setFetchSize(5000);
-            stmt.setMaxRows(5000);
+            stmt.setFetchSize(BATCH_SIZE);
+            stmt.setMaxRows(BATCH_SIZE);
 
+            // Create statistic from row count
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
                 if (rs.next()) {
                     double rowCount = rs.getDouble(1);
@@ -79,12 +91,7 @@ public class CustomTable extends AbstractTable implements ScannableTable {
                 }
             }
 
-            // int columnCount = stmt
-            // .executeQuery("SELECT count(*) as No_of_Column FROM
-            // information_schema.columns WHERE table_name ='"
-            // + tableName + "'")
-            // .getInt("No_of_Column");
-
+            // Load data into memory
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                 int columnCount = rs.getMetaData().getColumnCount();
                 int rowCount = 0;
@@ -115,7 +122,8 @@ public class CustomTable extends AbstractTable implements ScannableTable {
         return new CustomTable(rowType, data, statistic);
     }
 
-    // Unused for now
+    // Created to use instead of Linq4j.asEnumerable. Yet another example of
+    // building something because I hadn't found the right function yet
     private class CustomEnumerable extends AbstractEnumerable<Object[]> {
 
         private final ResultSet data;
@@ -203,5 +211,44 @@ public class CustomTable extends AbstractTable implements ScannableTable {
             return this.enumerator;
         }
     };
+
+    /**
+     * Adds CustomTables to the given root schema from the given duckdb database
+     * path
+     * 
+     * @param rootSchema Schema to add tables to
+     * @param dbPath     path to db
+     * @throws SQLException
+     */
+    protected static void addTables(SchemaPlus rootSchema, String dbPath) throws SQLException {
+
+        String url = "jdbc:duckdb:" + dbPath;
+
+        String schemaName = "duckdb";
+
+        CalciteSchema jdbcRootSchema = CalciteSchema.createRootSchema(false);
+
+        String driverClassName = "org.duckdb.DuckDBDriver";
+        DataSource dataSource = JdbcSchema.dataSource(url, driverClassName, null, null);
+
+        JdbcSchema jdbcSchema = JdbcSchema.create(jdbcRootSchema.plus(), schemaName, dataSource, null, null);
+
+        Set<String> tableNames = jdbcSchema.getTableNames();
+
+        System.out.println("Table names: " + tableNames);
+
+        // Copy each table to the in-memory schema
+        for (String tableName : tableNames) {
+            Table jdbcTable = jdbcSchema.getTable(tableName);
+            if (jdbcTable != null) {
+                CustomTable table = CustomTable.fromJdbcTable(
+                        jdbcTable,
+                        tableName,
+                        jdbcSchema.getDataSource(),
+                        new JavaTypeFactoryImpl());
+                rootSchema.add(tableName, table);
+            }
+        }
+    }
 
 }
