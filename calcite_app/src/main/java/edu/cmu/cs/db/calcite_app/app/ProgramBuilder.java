@@ -110,6 +110,7 @@ public class ProgramBuilder {
         rules.add(CoreRules.JOIN_COMMUTE);
         rules.add(CoreRules.JOIN_PUSH_EXPRESSIONS);
         rules.add(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
+        // rules.add(CoreRules.JOIN_EXTRACT_FILTER)
 
         rules.add(CoreRules.PROJECT_REMOVE);
         rules.add(CoreRules.PROJECT_MERGE);
@@ -121,7 +122,12 @@ public class ProgramBuilder {
         // rules.add(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE);
         // rules.add(CoreRules.SORT_REMOVE);
         // rules.add(CoreRules.SORT_REMOVE_REDUNDANT);
+        rules.add(CoreRules.AGGREGATE_FILTER_TRANSPOSE);
+        rules.add(CoreRules.AGGREGATE_MERGE);
+
         rules.add(CoreRules.AGGREGATE_REMOVE);
+        // rules.add(CoreRules.AGGREGATE_JOIN_TRANSPOSE);
+        // rules.add(CoreRules.AGGREGATE_PROJECT_MERGE);
         rules.add(CoreRules.PROJECT_REMOVE);
 
         return rules;
