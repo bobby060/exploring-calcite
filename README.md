@@ -1,6 +1,12 @@
-# 15-799 Spring 2025 Project 1
+# Query Optimization in Calcite
 
-Please see the project [writeup](https://15799.courses.cs.cmu.edu/spring2025/project1.html) for details.
+*This project was created for the course 15-799: Query Optimization in Database Systems. For more information about the original requirements please see the project [writeup](https://15799.courses.cs.cmu.edu/spring2025/project1.html) for details.*
+
+This simple Java program allows you to explore the effects of different rule sets on the performance of a query optimizer. You can modify the rule set in `ProgramBuilder.java`. 
+
+You will likely need to also change the `Optimizer.java` file to facilitate your specific use case.
+
+
 
 ## Quickstart
 
@@ -40,7 +46,9 @@ If gradle starts acting up, you can clear its cache:
 rm -rf ~/.gradle/caches/ 
 ```
 
-## Submission
+### Optimizing queries
 
-Run `make submit` to produce `submission.zip`.
-Upload the zip to Gradescope.
+### Executing queries
+You can execute optimized queries in RelRunner and also in DuckDB. RelRunner execution is limited and for example does nots support queries with dates.
+
+The optimizer will output optimized sql plans you can run in duckdb with `PRAGMA disable_optimizer`.
