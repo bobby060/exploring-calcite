@@ -8,6 +8,7 @@ You will likely need to also change the `Optimizer.java` file to facilitate your
 
 
 
+
 ## Quickstart
 
 1. Run `./setup.sh` to download DuckDB and the workload.

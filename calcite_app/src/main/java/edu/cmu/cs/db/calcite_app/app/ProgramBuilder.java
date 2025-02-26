@@ -48,6 +48,7 @@ public class ProgramBuilder {
         rules.add(EnumerableRules.ENUMERABLE_VALUES_RULE);
 
         rules.add(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+        rules.add(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
 
         rules.add(EnumerableRules.ENUMERABLE_CALC_RULE);
 
@@ -157,11 +158,6 @@ public class ProgramBuilder {
 
         for (RelOptRule rule : ProgramBuilder.enumerableRules()) {
             planner.addRule(rule);
-        }
-
-        // Rules only forfor in-memory execution
-        if (isRelRunnner) {
-            planner.addRule(CoreRules.PROJECT_TO_SEMI_JOIN);
         }
 
         for (RelOptRule rule : ProgramBuilder.coreRules()) {

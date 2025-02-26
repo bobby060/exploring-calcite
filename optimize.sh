@@ -12,6 +12,7 @@ echo -e "\tOutput Dir: ${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p input
 
+# Remove the data.db file if it exists
 if [ -f "data.db" ]; then
   rm "data.db"
 fi
@@ -23,16 +24,10 @@ tar xzf "${WORKLOAD}" -C input
 
 cd calcite_app
 
-# export log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
 
-
-# Feel free to add more steps here.
 # init the database
 ../duckdb -init ../input/data/schema.sql -no-stdin ../data.db
 ../duckdb -init ../input/data/load.sql -no-stdin ../data.db
-
-# mkdir csv
-# ../duckdb -init tocsv.sql -no-stdin ../data.db
 
 
 
@@ -41,10 +36,6 @@ cd calcite_app
 ./gradlew shadowJar
 ./gradlew --stop
 java -Xmx4096m -jar build/libs/calcite_app-1.0-SNAPSHOT-all.jar "../input/queries" "../${OUTPUT_DIR}"
-# java -Xmx4096m -jar  \
-# -Dlog4j.configuration="log4j.properties" \
-# -Dorg.slf4j.simpleLogger.defaultLogLevel=info \
-#  build/libs/calcite_app-1.0-SNAPSHOT-all.jar "../input/queries" "../${OUTPUT_DIR}"
-# 
+
 
 cd -

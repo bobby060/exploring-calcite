@@ -30,7 +30,6 @@ public class App {
         File queryDir = new File(args[0]);
         for (File file : queryDir.listFiles()) {
             if (file.getName().endsWith(".sql")) {
-                // if (file.getName().equals("q18.sql")) {
                 System.out.println("Optimizing query: " + file.getName());
                 optimizer.optimize(file.getPath(), args[1],
                         !badQueries.contains(file.getName()));

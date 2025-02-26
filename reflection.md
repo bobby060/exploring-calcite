@@ -18,7 +18,7 @@ SELECT * FROM (SELECT * FROM l1.lineitem) AS l1 JOIN (SELECT * FROM l2.nation) A
 - RelRunner actually optimizes the query again, so if we run the optimized node through it, we get errors that say insufficent rule set. This might be because a RelNode is already in EnumerableConvention by the time we try to optimize it a second time, so all of the CoreRules that expect LogicalConvention no longer can apply. I also found that I had to reset the planner between optimization calls, otherwise leftover state from the first optimization would affect the second (the one I was using within RelRunner).
 - EnumerableAggregateRule can only convert specific logical aggregate functions to enumerable aggregate functions. To address this, I had to use the AggregateReduceFunctionsRule to convert the aggregate functions to a format that EnumerableAggregateRule could understand.
 - Limit sort doesn't work. Why?
-
+- I had a problem where I would run out of heap space when optimizing q8. I was able to resolve this by enabling top-down optimization in the Volcano planner.
 
 
 ### Tuning rules set
@@ -33,15 +33,6 @@ Broadly, these fit into two categories:
 - Join rules. I added rules that would both reocrder joins based on communative and associative properties, and also push filters through joins. I did find that some rules, like JoinPushThroughJoinRule, would explode the search space and cause a time out. I ommitted these rules. 
 - Filter and project rules. I added rules that would either combine multiple filters into one, and also push filters and projectspast joins and past each other.
 
-I fond that the ProjectToSemiJoinRule was useful for in-memory execution, but lengthened execution time in DuckDb. So I only use this rule to optimize for RelRunner. 
-
-
-### Project Feedback
-
-What was good:
-
-
-What could be improved: 
 
 
 
